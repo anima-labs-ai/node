@@ -1,0 +1,87 @@
+import type { RequestClient } from "../client";
+import type {
+	AttachmentDownloadOutput,
+	MessageListParams,
+	MessageOutput,
+	MessageSearchParams,
+	PaginatedResponse,
+	SendEmailInput,
+	SendSmsInput,
+	UploadAttachmentInput,
+} from "../types";
+
+export class MessagesResource {
+	public constructor(private readonly client: RequestClient) {}
+
+	public sendEmail(input: SendEmailInput): Promise<MessageOutput> {
+		return this.client.request<MessageOutput>("POST", "/messages/email", input);
+	}
+
+	public sendSms(input: SendSmsInput): Promise<MessageOutput> {
+		return this.client.request<MessageOutput>("POST", "/messages/sms", input);
+	}
+
+	public get(id: string): Promise<MessageOutput> {
+		return this.client.request<MessageOutput>("GET", `/messages/${id}`);
+	}
+
+	public list(params?: MessageListParams): Promise<PaginatedResponse<MessageOutput>> {
+		return this.client.request<PaginatedResponse<MessageOutput>>(
+			"GET",
+			"/messages",
+			undefined,
+			this.toListQuery(params),
+		);
+	}
+
+	public search(
+		query: string,
+		options?: MessageSearchParams,
+	): Promise<PaginatedResponse<MessageOutput>> {
+		return this.client.request<PaginatedResponse<MessageOutput>>("POST", "/messages/search", {
+			query,
+			filters: options?.filters,
+			pagination: options?.pagination,
+		});
+	}
+
+	public uploadAttachment(
+		messageId: string,
+		input: UploadAttachmentInput,
+	): Promise<{
+		id: string;
+		filename: string;
+		mimeType: string;
+		sizeBytes: number;
+		storageKey: string;
+		url: string | null;
+		createdAt: string;
+	}> {
+		return this.client.request("POST", `/messages/${messageId}/attachments`, {
+			messageId,
+			...input,
+		});
+	}
+
+	public getAttachmentUrl(attachmentId: string): Promise<AttachmentDownloadOutput> {
+		return this.client.request<AttachmentDownloadOutput>("GET", `/attachments/${attachmentId}/download`);
+	}
+
+	private toListQuery(params?: MessageListParams): Record<string, string> | undefined {
+		if (!params) {
+			return undefined;
+		}
+
+		const query: Record<string, string> = {};
+		if (params.cursor) query.cursor = params.cursor;
+		if (params.limit !== undefined) query.limit = String(params.limit);
+		if (params.agentId) query.agentId = params.agentId;
+		if (params.threadId) query.threadId = params.threadId;
+		if (params.channel) query.channel = params.channel;
+		if (params.direction) query.direction = params.direction;
+		if (params.dateRange?.from) query["dateRange.from"] = params.dateRange.from;
+		if (params.dateRange?.to) query["dateRange.to"] = params.dateRange.to;
+
+		return Object.keys(query).length > 0 ? query : undefined;
+	}
+}

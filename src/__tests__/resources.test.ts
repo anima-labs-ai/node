@@ -1,0 +1,220 @@
+import { describe, expect, mock, test } from "bun:test";
+
+import type { RequestClient } from "../client";
+import { AgentsResource } from "../resources/agents";
+import { DomainsResource } from "../resources/domains";
+import { EmailsResource } from "../resources/emails";
+import { MessagesResource } from "../resources/messages";
+import { OrganizationsResource } from "../resources/organizations";
+import { PhonesResource } from "../resources/phones";
+import { SecurityResource } from "../resources/security";
+import { WebhooksResource } from "../resources/webhooks";
+
+function createMockClient(): { client: RequestClient; requestMock: ReturnType<typeof mock> } {
+	const requestMock = mock(async () => ({ ok: true }));
+	const client: RequestClient = {
+		request: requestMock as RequestClient["request"],
+	};
+	return { client, requestMock };
+}
+
+describe("resource methods", () => {
+	test("organizations resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new OrganizationsResource(client);
+
+		await resource.create({ name: "Acme", slug: "acme" });
+		await resource.get("org_1");
+		await resource.list({ limit: 10, cursor: "c1" });
+		await resource.update("org_1", { name: "Acme 2" });
+		await resource.rotateKey("org_1");
+		await resource.delete("org_1");
+
+		expect(requestMock).toHaveBeenCalledWith("POST", "/orgs", { name: "Acme", slug: "acme" });
+		expect(requestMock).toHaveBeenCalledWith("GET", "/orgs/org_1");
+		expect(requestMock).toHaveBeenCalledWith("GET", "/orgs", undefined, { limit: "10", cursor: "c1" });
+		expect(requestMock).toHaveBeenCalledWith("PATCH", "/orgs/org_1", { id: "org_1", name: "Acme 2" });
+		expect(requestMock).toHaveBeenCalledWith("POST", "/orgs/org_1/rotate-key", { id: "org_1" });
+		expect(requestMock).toHaveBeenCalledWith("DELETE", "/orgs/org_1");
+	});
+
+	test("agents resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new AgentsResource(client);
+
+		await resource.create({ orgId: "org_1", name: "A", slug: "a1" });
+		await resource.get("agent_1");
+		await resource.list({ orgId: "org_1", status: "ACTIVE", query: "agent", limit: 5 });
+		await resource.update("agent_1", { name: "B" });
+		await resource.rotateKey("agent_1");
+		await resource.delete("agent_1");
+
+		expect(requestMock).toHaveBeenCalledWith("POST", "/agents", { orgId: "org_1", name: "A", slug: "a1" });
+		expect(requestMock).toHaveBeenCalledWith("GET", "/agents/agent_1");
+		expect(requestMock).toHaveBeenCalledWith("GET", "/agents", undefined, {
+			orgId: "org_1",
+			status: "ACTIVE",
+			query: "agent",
+			limit: "5",
+		});
+		expect(requestMock).toHaveBeenCalledWith("PATCH", "/agents/agent_1", { id: "agent_1", name: "B" });
+		expect(requestMock).toHaveBeenCalledWith("POST", "/agents/agent_1/rotate-key", { id: "agent_1" });
+		expect(requestMock).toHaveBeenCalledWith("DELETE", "/agents/agent_1");
+	});
+
+	test("messages resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new MessagesResource(client);
+
+		await resource.sendEmail({ agentId: "agent_1", to: ["a@x.com"], subject: "S", body: "B" });
+		await resource.sendSms({ agentId: "agent_1", to: "+15550001", body: "Hi" });
+		await resource.get("msg_1");
+		await resource.list({ dateRange: { from: "2024-01-01T00:00:00.000Z" } });
+		await resource.search("hello", { filters: { status: "SENT" } });
+		await resource.uploadAttachment("msg_1", {
+			filename: "a.txt",
+			mimeType: "text/plain",
+			sizeBytes: 1,
+		});
+		await resource.getAttachmentUrl("att_1");
+
+		expect(requestMock).toHaveBeenCalledWith("POST", "/messages/email", {
+			agentId: "agent_1",
+			to: ["a@x.com"],
+			subject: "S",
+			body: "B",
+		});
+		expect(requestMock).toHaveBeenCalledWith("POST", "/messages/sms", {
+			agentId: "agent_1",
+			to: "+15550001",
+			body: "Hi",
+		});
+		expect(requestMock).toHaveBeenCalledWith("GET", "/messages/msg_1");
+		expect(requestMock).toHaveBeenCalledWith("GET", "/messages", undefined, {
+			"dateRange.from": "2024-01-01T00:00:00.000Z",
+		});
+		expect(requestMock).toHaveBeenCalledWith("POST", "/messages/search", {
+			query: "hello",
+			filters: { status: "SENT" },
+			pagination: undefined,
+		});
+		expect(requestMock).toHaveBeenCalledWith("POST", "/messages/msg_1/attachments", {
+			messageId: "msg_1",
+			filename: "a.txt",
+			mimeType: "text/plain",
+			sizeBytes: 1,
+		});
+		expect(requestMock).toHaveBeenCalledWith("GET", "/attachments/att_1/download");
+	});
+
+	test("emails resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new EmailsResource(client);
+
+		await resource.list({ agentId: "agent_1", limit: 5 });
+		await resource.uploadAttachment("msg_1", {
+			filename: "b.txt",
+			mimeType: "text/plain",
+			sizeBytes: 2,
+		});
+		await resource.getAttachmentUrl("att_1");
+
+		expect(requestMock).toHaveBeenCalledWith("GET", "/email", undefined, {
+			agentId: "agent_1",
+			limit: "5",
+		});
+		expect(requestMock).toHaveBeenCalledWith("POST", "/messages/msg_1/attachments", {
+			messageId: "msg_1",
+			filename: "b.txt",
+			mimeType: "text/plain",
+			sizeBytes: 2,
+		});
+		expect(requestMock).toHaveBeenCalledWith("GET", "/attachments/att_1/download");
+	});
+
+	test("domains resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new DomainsResource(client);
+
+		await resource.add({ domain: "example.com" });
+		await resource.get("dom_1");
+		await resource.list();
+		await resource.verify("dom_1");
+		await resource.dnsRecords("dom_1");
+		await resource.deliverability("dom_1");
+		await resource.delete("dom_1");
+
+		expect(requestMock).toHaveBeenCalledWith("POST", "/domains", { domain: "example.com" });
+		expect(requestMock).toHaveBeenCalledWith("GET", "/domains/dom_1");
+		expect(requestMock).toHaveBeenCalledWith("GET", "/domains");
+		expect(requestMock).toHaveBeenCalledWith("POST", "/domains/dom_1/verify", { id: "dom_1", domainId: "dom_1" });
+		expect(requestMock).toHaveBeenCalledWith("GET", "/domains/dom_1/dns-records");
+		expect(requestMock).toHaveBeenCalledWith("GET", "/domains/dom_1/deliverability");
+		expect(requestMock).toHaveBeenCalledWith("DELETE", "/domains/dom_1");
+	});
+
+	test("phones resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new PhonesResource(client);
+
+		await resource.provision({ agentId: "agent_1" });
+		await resource.get("phone_1");
+		await resource.list({ agentId: "agent_1" });
+		await resource.updateConfig("phone_1", { isPrimary: true });
+		await resource.release("phone_1");
+
+		expect(requestMock).toHaveBeenCalledWith("POST", "/phone/provision", { agentId: "agent_1" });
+		expect(requestMock).toHaveBeenCalledWith("GET", "/phones/phone_1");
+		expect(requestMock).toHaveBeenCalledWith("GET", "/phone/numbers", undefined, { agentId: "agent_1" });
+		expect(requestMock).toHaveBeenCalledWith("PATCH", "/phones/phone_1", { isPrimary: true });
+		expect(requestMock).toHaveBeenCalledWith("DELETE", "/phones/phone_1");
+	});
+
+	test("webhooks resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new WebhooksResource(client);
+
+		await resource.create({ url: "https://x.dev/hook", events: ["message.sent"] });
+		await resource.get("wh_1");
+		await resource.list({ limit: 2 });
+		await resource.update("wh_1", { active: false });
+		await resource.test("wh_1", "message.failed");
+		await resource.listDeliveries("wh_1", { cursor: "c1", limit: 5 });
+		await resource.delete("wh_1");
+
+		expect(requestMock).toHaveBeenCalledWith("POST", "/webhooks", {
+			url: "https://x.dev/hook",
+			events: ["message.sent"],
+		});
+		expect(requestMock).toHaveBeenCalledWith("GET", "/webhooks/wh_1");
+		expect(requestMock).toHaveBeenCalledWith("GET", "/webhooks", undefined, { limit: "2" });
+		expect(requestMock).toHaveBeenCalledWith("PUT", "/webhooks/wh_1", { id: "wh_1", active: false });
+		expect(requestMock).toHaveBeenCalledWith("POST", "/webhooks/wh_1/test", { id: "wh_1", event: "message.failed" });
+		expect(requestMock).toHaveBeenCalledWith("GET", "/webhooks/wh_1/deliveries", undefined, {
+			webhookId: "wh_1",
+			cursor: "c1",
+			limit: "5",
+		});
+		expect(requestMock).toHaveBeenCalledWith("DELETE", "/webhooks/wh_1");
+	});
+
+	test("security resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new SecurityResource(client);
+
+		await resource.scanContent({ orgId: "org_1", channel: "EMAIL", body: "hello" });
+		await resource.listEvents({ orgId: "org_1", type: "BLOCKED", limit: 10 });
+
+		expect(requestMock).toHaveBeenCalledWith("POST", "/security/scan", {
+			orgId: "org_1",
+			channel: "EMAIL",
+			body: "hello",
+		});
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/v1/orgs/org_1/security/events",
+			undefined,
+			{ orgId: "org_1", type: "BLOCKED", limit: "10" },
+		);
+	});
+});

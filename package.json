@@ -1,0 +1,50 @@
+{
+	"name": "@anima-labs/sdk",
+	"version": "0.1.0",
+	"description": "Official TypeScript/Node.js SDK for the Anima API",
+	"license": "MIT",
+	"author": "Anima Labs <support@anima.email>",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/anima-labs-ai/node"
+	},
+	"homepage": "https://github.com/anima-labs-ai/node",
+	"bugs": {
+		"url": "https://github.com/anima-labs-ai/node/issues"
+	},
+	"keywords": [
+		"anima",
+		"sdk",
+		"ai-agents",
+		"email",
+		"identity",
+		"typescript"
+	],
+	"main": "./dist/index.cjs",
+	"module": "./dist/index.js",
+	"types": "./dist/index.d.ts",
+	"exports": {
+		".": {
+			"import": "./dist/index.js",
+			"require": "./dist/index.cjs",
+			"types": "./dist/index.d.ts"
+		}
+	},
+	"files": [
+		"dist",
+		"README.md",
+		"LICENSE"
+	],
+	"scripts": {
+		"build": "tsup src/index.ts --format esm,cjs --dts --clean",
+		"typecheck": "tsc --noEmit",
+		"test": "bun test src/__tests__/client.test.ts && bun test src/__tests__/webhooks.test.ts && bun test src/__tests__/resources.test.ts"
+	},
+	"engines": {
+		"node": ">=18"
+	},
+	"devDependencies": {
+		"tsup": "^8.0.0",
+		"typescript": "^5.7.0"
+	}
+}
