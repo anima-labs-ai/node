@@ -453,6 +453,59 @@ export interface VaultStatusOutput {
 	status: string;
 }
 
+export type AddressType = "BILLING" | "SHIPPING" | "MAILING" | "REGISTERED";
+
+export interface CreateAddressInput {
+	agentId: string;
+	type: AddressType;
+	label?: string;
+	street1: string;
+	street2?: string;
+	city: string;
+	state: string;
+	postalCode: string;
+	country: string;
+}
+
+export interface UpdateAddressInput {
+	agentId: string;
+	type?: AddressType;
+	label?: string;
+	street1?: string;
+	street2?: string;
+	city?: string;
+	state?: string;
+	postalCode?: string;
+	country?: string;
+}
+
+export interface AddressOutput {
+	id: string;
+	agentId: string;
+	type: AddressType;
+	label: string | null;
+	street1: string;
+	street2: string | null;
+	city: string;
+	state: string;
+	postalCode: string;
+	country: string;
+	validated: boolean;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ValidateAddressOutput {
+	valid: boolean;
+	normalizedAddress: AddressOutput | null;
+	errors: string[];
+}
+
+export interface ListAddressesParams extends PaginationInput {
+	agentId?: string;
+	type?: AddressType;
+}
+
 export type WebhookEventType =
 	| "message.received"
 	| "message.sent"
@@ -733,4 +786,28 @@ export interface ListApprovalsParams {
 export interface ApprovalList {
 	items: CardApproval[];
 	cursor?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Real-time Events (WebSocket)
+// ---------------------------------------------------------------------------
+
+export interface EventStreamOptions {
+	/** Channels to subscribe to on connect (e.g. `["email.*", "card.*"]`). */
+	channels?: string[];
+}
+
+export interface AnimaEvent {
+	/** Unique event ID. */
+	id: string;
+	/** Dot-separated event type (e.g. `email.received`). */
+	eventType: string;
+	/** Agent ID, if scoped to a specific agent. */
+	agentId?: string;
+	/** Organization ID. */
+	orgId: string;
+	/** ISO-8601 timestamp. */
+	timestamp: string;
+	/** Event payload. */
+	data: Record<string, unknown>;
 }
