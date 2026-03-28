@@ -811,3 +811,273 @@ export interface AnimaEvent {
 	/** Event payload. */
 	data: Record<string, unknown>;
 }
+
+// ---------------------------------------------------------------------------
+// Identity (DID / Verifiable Credentials)
+// ---------------------------------------------------------------------------
+
+export interface DidDocument {
+	did: string;
+	agentId: string;
+	document: Record<string, unknown>;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface DidRotateOutput {
+	did: string;
+	agentId: string;
+	document: Record<string, unknown>;
+	previousDid: string | null;
+	rotatedAt: string;
+}
+
+export interface VerifiableCredential {
+	id: string;
+	type: string;
+	issuer: string;
+	subject: string;
+	issuanceDate: string;
+	expirationDate: string | null;
+	credentialSubject: Record<string, unknown>;
+	proof: Record<string, unknown>;
+}
+
+export interface VerifyCredentialOutput {
+	valid: boolean;
+	credential: VerifiableCredential | null;
+	errors: string[];
+}
+
+export interface AgentCardOutput {
+	did: string;
+	agentId: string;
+	name: string;
+	description: string | null;
+	capabilities: string[];
+	endpoints: Record<string, string>;
+	metadata: Record<string, unknown>;
+	createdAt: string;
+	updatedAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Registry
+// ---------------------------------------------------------------------------
+
+export interface RegisterAgentInput {
+	did: string;
+	name: string;
+	description?: string;
+	category?: string;
+	capabilities?: string[];
+	endpoints?: Record<string, string>;
+	metadata?: Record<string, unknown>;
+}
+
+export interface UpdateRegistryAgentInput {
+	name?: string;
+	description?: string;
+	category?: string;
+	capabilities?: string[];
+	endpoints?: Record<string, string>;
+	metadata?: Record<string, unknown>;
+}
+
+export interface RegistryAgentOutput {
+	did: string;
+	name: string;
+	description: string | null;
+	category: string | null;
+	capabilities: string[];
+	endpoints: Record<string, string>;
+	metadata: Record<string, unknown>;
+	verified: boolean;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface RegistrySearchParams extends PaginationInput {
+	category?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Wallet
+// ---------------------------------------------------------------------------
+
+export type WalletStatus = "ACTIVE" | "FROZEN";
+
+export interface CreateWalletInput {
+	currency?: string;
+	metadata?: Record<string, unknown>;
+}
+
+export interface UpdateWalletInput {
+	metadata?: Record<string, unknown>;
+	spendLimitDaily?: number | null;
+	spendLimitMonthly?: number | null;
+}
+
+export interface WalletOutput {
+	id: string;
+	agentId: string;
+	address: string;
+	currency: string;
+	balance: number;
+	status: WalletStatus;
+	spendLimitDaily: number | null;
+	spendLimitMonthly: number | null;
+	metadata: Record<string, unknown>;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface WalletPayInput {
+	to: string;
+	amount: number;
+	currency?: string;
+	memo?: string;
+	metadata?: Record<string, unknown>;
+}
+
+export interface WalletPayOutput {
+	transactionId: string;
+	from: string;
+	to: string;
+	amount: number;
+	currency: string;
+	status: string;
+	createdAt: string;
+}
+
+export interface X402FetchInput {
+	url: string;
+	method?: string;
+	headers?: Record<string, string>;
+	body?: string;
+	maxPaymentAmount?: number;
+}
+
+export interface X402FetchOutput {
+	status: number;
+	headers: Record<string, string>;
+	body: string;
+	paymentAmount: number | null;
+	transactionId: string | null;
+}
+
+export interface WalletTransactionOutput {
+	id: string;
+	walletId: string;
+	type: string;
+	amount: number;
+	currency: string;
+	from: string | null;
+	to: string | null;
+	memo: string | null;
+	status: string;
+	metadata: Record<string, unknown> | null;
+	createdAt: string;
+}
+
+export interface WalletTransactionsParams extends PaginationInput {
+	status?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Pods
+// ---------------------------------------------------------------------------
+
+export type PodStatus = "RUNNING" | "STOPPED" | "CREATING" | "ERROR";
+
+export interface CreatePodInput {
+	agentId: string;
+	name: string;
+	image: string;
+	resources?: PodResourceSpec;
+	env?: Record<string, string>;
+	metadata?: Record<string, unknown>;
+}
+
+export interface UpdatePodInput {
+	name?: string;
+	resources?: PodResourceSpec;
+	env?: Record<string, string>;
+	metadata?: Record<string, unknown>;
+}
+
+export interface PodResourceSpec {
+	cpu?: string;
+	memory?: string;
+	storage?: string;
+}
+
+export interface PodOutput {
+	id: string;
+	agentId: string;
+	name: string;
+	image: string;
+	status: PodStatus;
+	resources: PodResourceSpec;
+	env: Record<string, string>;
+	metadata: Record<string, unknown>;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface PodUsageOutput {
+	podId: string;
+	cpuUsage: number;
+	memoryUsage: number;
+	storageUsage: number;
+	networkIn: number;
+	networkOut: number;
+	uptimeSeconds: number;
+	measuredAt: string;
+}
+
+export interface ListPodsParams extends PaginationInput {
+	agentId?: string;
+}
+
+// ---------------------------------------------------------------------------
+// A2A (Agent-to-Agent Protocol)
+// ---------------------------------------------------------------------------
+
+export type A2ATaskStatus =
+	| "SUBMITTED"
+	| "WORKING"
+	| "INPUT_REQUIRED"
+	| "COMPLETED"
+	| "CANCELED"
+	| "FAILED";
+
+export interface A2ASubmitTaskInput {
+	type: string;
+	input: Record<string, unknown>;
+	fromDid?: string;
+}
+
+export interface A2AArtifact {
+	name: string;
+	mimeType: string;
+	data: string;
+}
+
+export interface A2ATaskOutput {
+	id: string;
+	agentId: string;
+	type: string;
+	status: A2ATaskStatus;
+	input: Record<string, unknown>;
+	output: Record<string, unknown> | null;
+	artifacts: A2AArtifact[];
+	fromDid: string | null;
+	error: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface A2ATaskListParams extends PaginationInput {
+	status?: string;
+}

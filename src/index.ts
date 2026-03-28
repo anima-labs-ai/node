@@ -5,12 +5,17 @@ import { CardsResource } from "./resources/cards";
 import { DomainsResource } from "./resources/domains";
 import { EmailsResource } from "./resources/emails";
 import { EventsResource } from "./resources/events";
+import { IdentityResource } from "./resources/identity";
 import { MessagesResource } from "./resources/messages";
 import { OrganizationsResource } from "./resources/organizations";
 import { PhonesResource } from "./resources/phones";
+import { PodsResource } from "./resources/pods";
+import { RegistryResource } from "./resources/registry";
 import { SecurityResource } from "./resources/security";
 import { VaultResource } from "./resources/vault";
+import { WalletResource } from "./resources/wallet";
 import { WebhooksResource } from "./resources/webhooks";
+import { A2AResource } from "./resources/a2a";
 import type { AnimaClientOptions } from "./types";
 import { constructWebhookEvent, verifyWebhookSignature } from "./webhooks";
 
@@ -26,11 +31,16 @@ export class Anima {
 	public readonly emails: EmailsResource;
 	public readonly domains: DomainsResource;
 	public readonly cards: CardsResource;
+	public readonly identity: IdentityResource;
 	public readonly phones: PhonesResource;
+	public readonly pods: PodsResource;
+	public readonly registry: RegistryResource;
 	public readonly webhooks: WebhooksResource;
 	public readonly security: SecurityResource;
 	public readonly vault: VaultResource;
+	public readonly wallet: WalletResource;
 	public readonly events: EventsResource;
+	public readonly a2a: A2AResource;
 
 	public static readonly webhooks = {
 		verify: verifyWebhookSignature,
@@ -49,11 +59,16 @@ export class Anima {
 		this.emails = new EmailsResource(this.client);
 		this.domains = new DomainsResource(this.client);
 		this.cards = new CardsResource(this.client);
+		this.identity = new IdentityResource(this.client);
 		this.phones = new PhonesResource(this.client);
+		this.pods = new PodsResource(this.client);
+		this.registry = new RegistryResource(this.client);
 		this.webhooks = new WebhooksResource(this.client);
 		this.security = new SecurityResource(this.client);
 		this.vault = new VaultResource(this.client);
+		this.wallet = new WalletResource(this.client);
 		this.events = new EventsResource(options.apiKey, baseUrl);
+		this.a2a = new A2AResource(this.client);
 	}
 }
 
