@@ -1081,3 +1081,286 @@ export interface A2ATaskOutput {
 export interface A2ATaskListParams extends PaginationInput {
 	status?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Audit
+// ---------------------------------------------------------------------------
+
+export type AuditActorType = "api_key" | "user" | "system" | "agent";
+export type AuditResult = "success" | "failure" | "denied";
+
+export interface AuditLogOutput {
+	id: string;
+	orgId: string;
+	actorType: AuditActorType;
+	actorId: string;
+	action: string;
+	resourceType: string;
+	resourceId: string;
+	result: AuditResult;
+	ipAddress: string | null;
+	userAgent: string | null;
+	metadata: Record<string, unknown> | null;
+	createdAt: string;
+}
+
+export interface AuditLogListParams extends PaginationInput {
+	actorId?: string;
+	actorType?: AuditActorType;
+	action?: string;
+	resourceType?: string;
+	resourceId?: string;
+	result?: AuditResult;
+	from?: string;
+	to?: string;
+}
+
+export interface AuditLogExportParams {
+	format?: "csv" | "json";
+	from?: string;
+	to?: string;
+	actorId?: string;
+	action?: string;
+	resourceType?: string;
+}
+
+export interface AuditLogExportOutput {
+	url: string;
+	format: "csv" | "json";
+	recordCount: number;
+	expiresAt: string;
+}
+
+// ---------------------------------------------------------------------------
+// Compliance
+// ---------------------------------------------------------------------------
+
+export type ComplianceFramework = "SOC2" | "GDPR" | "PCI";
+export type ComplianceControlStatus = "not_started" | "in_progress" | "implemented" | "verified" | "failed";
+export type ComplianceReportType = "soc2_summary" | "activity_report" | "access_review" | "audit_export" | "gdpr_dsar";
+export type DsarStatus = "pending" | "in_progress" | "completed" | "rejected";
+
+export interface ComplianceControlOutput {
+	id: string;
+	orgId: string;
+	framework: ComplianceFramework;
+	controlId: string;
+	title: string;
+	description: string;
+	category: string;
+	status: ComplianceControlStatus;
+	owner: string | null;
+	lastTestedAt: string | null;
+	nextReviewAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ComplianceControlListParams extends PaginationInput {
+	framework?: ComplianceFramework;
+	category?: string;
+	status?: ComplianceControlStatus;
+}
+
+export interface ComplianceControlStatusInput {
+	status: ComplianceControlStatus;
+	owner?: string;
+}
+
+export interface SeedFrameworkInput {
+	framework: ComplianceFramework;
+}
+
+export interface SeedFrameworkOutput {
+	controlsCreated: number;
+	framework: ComplianceFramework;
+}
+
+export interface GenerateReportInput {
+	type: ComplianceReportType;
+	from?: string;
+	to?: string;
+	metadata?: Record<string, unknown>;
+}
+
+export interface ComplianceReportOutput {
+	id: string;
+	orgId: string;
+	type: ComplianceReportType;
+	status: string;
+	title: string;
+	summary: string | null;
+	data: Record<string, unknown> | null;
+	generatedAt: string;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ComplianceReportListParams extends PaginationInput {
+	type?: ComplianceReportType;
+}
+
+export interface ComplianceReportDownloadOutput {
+	url: string;
+	format: string;
+	expiresAt: string;
+}
+
+export interface ComplianceDashboardOutput {
+	orgId: string;
+	frameworks: Record<string, ComplianceFrameworkSummary>;
+	overallScore: number;
+	recentActivity: ComplianceReportOutput[];
+}
+
+export interface ComplianceFrameworkSummary {
+	totalControls: number;
+	implemented: number;
+	verified: number;
+	failed: number;
+	notStarted: number;
+	score: number;
+}
+
+export interface CreateDsarInput {
+	subjectEmail: string;
+	requestType: "access" | "deletion" | "rectification" | "portability";
+	description?: string;
+	metadata?: Record<string, unknown>;
+}
+
+export interface DsarOutput {
+	id: string;
+	orgId: string;
+	subjectEmail: string;
+	requestType: string;
+	status: DsarStatus;
+	description: string | null;
+	metadata: Record<string, unknown> | null;
+	completedAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface DsarListParams extends PaginationInput {
+	status?: DsarStatus;
+}
+
+export interface CompleteDsarInput {
+	notes?: string;
+	metadata?: Record<string, unknown>;
+}
+
+// ---------------------------------------------------------------------------
+// Anomaly Detection
+// ---------------------------------------------------------------------------
+
+export type AnomalyMetric =
+	| "email_send_rate"
+	| "sms_send_rate"
+	| "card_txn_count"
+	| "vault_access_rate"
+	| "api_call_rate"
+	| "unique_recipients";
+
+export type AnomalySeverity = "INFO" | "WARNING" | "CRITICAL";
+export type AnomalyAlertStatus = "TRIGGERED" | "ACKNOWLEDGED" | "RESOLVED" | "FALSE_POSITIVE";
+export type AnomalyCondition = "zscore_gt" | "rate_multiplier_gt" | "absolute_gt" | "time_violation";
+export type QuarantineAction = "NONE" | "SOFT" | "HARD";
+export type QuarantineLevel = "NONE" | "SOFT" | "HARD";
+export type BaselinePeriod = "hourly" | "daily";
+
+export interface AnomalyAlertOutput {
+	id: string;
+	orgId: string;
+	agentId: string;
+	metric: AnomalyMetric;
+	severity: AnomalySeverity;
+	status: AnomalyAlertStatus;
+	baselineValue: number;
+	actualValue: number;
+	zScore: number;
+	ruleId: string | null;
+	details: Record<string, unknown> | null;
+	acknowledgedBy: string | null;
+	acknowledgedAt: string | null;
+	resolvedBy: string | null;
+	resolvedAt: string | null;
+	createdAt: string;
+}
+
+export interface AnomalyAlertListParams extends PaginationInput {
+	agentId?: string;
+	metric?: AnomalyMetric;
+	severity?: AnomalySeverity;
+	status?: AnomalyAlertStatus;
+}
+
+export interface AnomalyRuleOutput {
+	id: string;
+	orgId: string;
+	name: string;
+	metric: AnomalyMetric;
+	condition: AnomalyCondition;
+	threshold: number;
+	severity: AnomalySeverity;
+	quarantineAction: QuarantineAction;
+	cooldownMinutes: number;
+	enabled: boolean;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface AnomalyRuleListParams extends PaginationInput {
+	metric?: AnomalyMetric;
+	enabled?: boolean;
+}
+
+export interface CreateAnomalyRuleInput {
+	name: string;
+	metric: AnomalyMetric;
+	condition: AnomalyCondition;
+	threshold: number;
+	severity: AnomalySeverity;
+	quarantineAction?: QuarantineAction;
+	cooldownMinutes?: number;
+	enabled?: boolean;
+}
+
+export interface UpdateAnomalyRuleInput {
+	name?: string;
+	threshold?: number;
+	severity?: AnomalySeverity;
+	quarantineAction?: QuarantineAction;
+	cooldownMinutes?: number;
+	enabled?: boolean;
+}
+
+export interface AgentBaselineOutput {
+	agentId: string;
+	orgId: string;
+	metrics: BaselineMetric[];
+}
+
+export interface BaselineMetric {
+	metric: AnomalyMetric;
+	period: BaselinePeriod;
+	mean: number;
+	stddev: number;
+	sampleCount: number;
+	hourlyPattern: Record<string, number> | null;
+	windowStart: string;
+	windowEnd: string;
+}
+
+export interface QuarantineInput {
+	level: QuarantineLevel;
+	reason?: string;
+}
+
+export interface QuarantineOutput {
+	agentId: string;
+	quarantineLevel: QuarantineLevel;
+	quarantinedAt: string | null;
+	reason: string | null;
+}

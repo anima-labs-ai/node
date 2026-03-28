@@ -16,6 +16,9 @@ import { VaultResource } from "./resources/vault";
 import { WalletResource } from "./resources/wallet";
 import { WebhooksResource } from "./resources/webhooks";
 import { A2AResource } from "./resources/a2a";
+import { AuditResource } from "./resources/audit";
+import { ComplianceResource } from "./resources/compliance";
+import { AnomalyResource } from "./resources/anomaly";
 import type { AnimaClientOptions } from "./types";
 import { constructWebhookEvent, verifyWebhookSignature } from "./webhooks";
 
@@ -41,6 +44,9 @@ export class Anima {
 	public readonly wallet: WalletResource;
 	public readonly events: EventsResource;
 	public readonly a2a: A2AResource;
+	public readonly audit: AuditResource;
+	public readonly compliance: ComplianceResource;
+	public readonly anomaly: AnomalyResource;
 
 	public static readonly webhooks = {
 		verify: verifyWebhookSignature,
@@ -69,6 +75,9 @@ export class Anima {
 		this.wallet = new WalletResource(this.client);
 		this.events = new EventsResource(options.apiKey, baseUrl);
 		this.a2a = new A2AResource(this.client);
+		this.audit = new AuditResource(this.client);
+		this.compliance = new ComplianceResource(this.client);
+		this.anomaly = new AnomalyResource(this.client);
 	}
 }
 
