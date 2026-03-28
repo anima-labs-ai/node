@@ -384,6 +384,8 @@ import {
   Anima,
   APIError,
   AuthError,
+  ConflictError,
+  InternalServerError,
   NotFoundError,
   RateLimitError,
   ValidationError,
@@ -401,9 +403,15 @@ try {
   } else if (error instanceof ValidationError) {
     // 400/422 — invalid request parameters
     console.error("Validation:", error.message, error.details);
+  } else if (error instanceof ConflictError) {
+    // 409 — resource conflict (e.g. duplicate slug)
+    console.error("Conflict:", error.message);
   } else if (error instanceof RateLimitError) {
     // 429 — rate limited, check retryAfter
     console.error("Rate limited, retry after:", error.retryAfter, "seconds");
+  } else if (error instanceof InternalServerError) {
+    // 5xx — server error
+    console.error("Server error:", error.status, error.message);
   } else if (error instanceof APIError) {
     // Other API errors
     console.error(error.status, error.code, error.message);
@@ -411,11 +419,20 @@ try {
 }
 ```
 
-All errors extend `AnimaError` → `APIError` with:
-- `status` — HTTP status code
-- `code` — Machine-readable error code
-- `message` — Human-readable message
-- `details` — Additional error context (when available)
+All errors extend `AnimaError` -> `APIError` with:
+- `status` -- HTTP status code
+- `code` -- Machine-readable error code
+- `message` -- Human-readable message
+- `details` -- Additional error context (when available)
+
+| Error Class           | HTTP Status | Code              |
+| --------------------- | ----------- | ----------------- |
+| `AuthError`           | 401/403     | `AUTH_ERROR`      |
+| `ValidationError`     | 400/422     | `VALIDATION_ERROR`|
+| `NotFoundError`       | 404         | `NOT_FOUND`       |
+| `ConflictError`       | 409         | `CONFLICT`        |
+| `RateLimitError`      | 429         | `RATE_LIMIT`      |
+| `InternalServerError` | 5xx         | `INTERNAL_ERROR`  |
 
 ## Pagination
 

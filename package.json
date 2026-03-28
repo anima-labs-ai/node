@@ -17,17 +17,22 @@
 		"sdk",
 		"ai-agents",
 		"email",
+		"sms",
 		"identity",
-		"typescript"
+		"webhooks",
+		"vault",
+		"virtual-cards",
+		"typescript",
+		"agent-infrastructure"
 	],
 	"main": "./dist/index.cjs",
 	"module": "./dist/index.js",
 	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
+			"types": "./dist/index.d.ts",
 			"import": "./dist/index.js",
-			"require": "./dist/index.cjs",
-			"types": "./dist/index.d.ts"
+			"require": "./dist/index.cjs"
 		}
 	},
 	"files": [
@@ -44,6 +49,7 @@
 		"node": ">=18"
 	},
 	"devDependencies": {
+		"@types/node": "^25.5.0",
 		"tsup": "^8.0.0",
 		"typescript": "^5.7.0"
 	}

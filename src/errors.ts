@@ -50,3 +50,17 @@ export class ValidationError extends APIError {
 		this.name = "ValidationError";
 	}
 }
+
+export class ConflictError extends APIError {
+	public constructor(message = "Resource conflict", details?: unknown) {
+		super(message, 409, "CONFLICT", details);
+		this.name = "ConflictError";
+	}
+}
+
+export class InternalServerError extends APIError {
+	public constructor(message = "Internal server error", status = 500, details?: unknown) {
+		super(message, status, "INTERNAL_ERROR", details);
+		this.name = "InternalServerError";
+	}
+}

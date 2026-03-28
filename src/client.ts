@@ -1,4 +1,4 @@
-import { APIError, AuthError, NotFoundError, RateLimitError, ValidationError } from "./errors";
+import { APIError, AuthError, ConflictError, InternalServerError, NotFoundError, RateLimitError, ValidationError } from "./errors";
 import type { AnimaClientOptions, ApiErrorEnvelope } from "./types";
 
 const DEFAULT_BASE_URL = "https://api.anima.com";
@@ -151,9 +151,14 @@ export class AnimaClient implements RequestClient {
 				return new AuthError(message, details);
 			case 404:
 				return new NotFoundError(message, details);
+			case 409:
+				return new ConflictError(message, details);
 			case 429:
 				return new RateLimitError(message, retryAfter, details);
 			default:
+				if (response.status >= 500) {
+					return new InternalServerError(message, response.status, details);
+				}
 				return new APIError(message, response.status, code, details);
 		}
 	}

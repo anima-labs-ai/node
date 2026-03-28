@@ -52,6 +52,8 @@ export {
 	AnimaError,
 	APIError,
 	AuthError,
+	ConflictError,
+	InternalServerError,
 	NotFoundError,
 	RateLimitError,
 	ValidationError,
