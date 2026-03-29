@@ -3,7 +3,7 @@
 	"version": "0.1.0",
 	"description": "Official TypeScript/Node.js SDK for the Anima API",
 	"license": "MIT",
-	"author": "Anima Labs <support@anima.email>",
+	"author": "Anima Labs <support@useanima.sh>",
 	"repository": {
 		"type": "git",
 		"url": "https://github.com/anima-labs-ai/node"

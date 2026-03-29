@@ -22,7 +22,7 @@ import { AnomalyResource } from "./resources/anomaly";
 import type { AnimaClientOptions } from "./types";
 import { constructWebhookEvent, verifyWebhookSignature } from "./webhooks";
 
-const DEFAULT_BASE_URL = "https://api.anima.com";
+const DEFAULT_BASE_URL = "https://api.useanima.sh";
 
 export class Anima {
 	private readonly client: AnimaClient;

@@ -1,6 +1,6 @@
 # Anima Node.js SDK
 
-The official TypeScript/Node.js SDK for the [Anima API](https://docs.anima.email) — unified identity infrastructure for AI agents.
+The official TypeScript/Node.js SDK for the [Anima API](https://docs.useanima.sh) — unified identity infrastructure for AI agents.
 
 [![npm version](https://img.shields.io/npm/v/@anima-labs/sdk.svg)](https://www.npmjs.com/package/@anima-labs/sdk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
@@ -44,7 +44,7 @@ console.log(message.id, message.status);
 ```ts
 const anima = new Anima({
   apiKey: "mk_your_api_key",   // Required — your organization master key or agent API key
-  baseUrl: "https://api.anima.com", // Optional — defaults to https://api.anima.com
+  baseUrl: "https://api.useanima.sh", // Optional — defaults to https://api.useanima.sh
   timeout: 30_000,              // Optional — request timeout in ms (default: 30s)
   maxRetries: 3,                // Optional — retry count for 429/5xx errors (default: 3)
 });
@@ -152,15 +152,15 @@ const { url } = await anima.messages.getAttachmentUrl("attachment_id");
 
 ```ts
 // List email messages
-const emails = await anima.emails.list({ agentId: "agent_id", limit: 20 });
+const emails = await useanima.shs.list({ agentId: "agent_id", limit: 20 });
 
 // Attachment helpers
-const uploaded = await anima.emails.uploadAttachment("msg_id", {
+const uploaded = await useanima.shs.uploadAttachment("msg_id", {
   filename: "doc.pdf",
   mimeType: "application/pdf",
   sizeBytes: 2048,
 });
-const download = await anima.emails.getAttachmentUrl("attachment_id");
+const download = await useanima.shs.getAttachmentUrl("attachment_id");
 ```
 
 ### Domains
@@ -488,7 +488,7 @@ import type {
 
 ## Documentation
 
-Full API documentation is available at [docs.anima.email](https://docs.anima.email).
+Full API documentation is available at [docs.useanima.sh](https://docs.useanima.sh).
 
 ## License
 

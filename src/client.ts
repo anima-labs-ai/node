@@ -1,7 +1,7 @@
 import { APIError, AuthError, ConflictError, InternalServerError, NotFoundError, RateLimitError, ValidationError } from "./errors";
 import type { AnimaClientOptions, ApiErrorEnvelope } from "./types";
 
-const DEFAULT_BASE_URL = "https://api.anima.com";
+const DEFAULT_BASE_URL = "https://api.useanima.sh";
 const DEFAULT_TIMEOUT = 30_000;
 const DEFAULT_MAX_RETRIES = 3;
 const RETRY_DELAYS_MS = [1_000, 2_000, 4_000] as const;
