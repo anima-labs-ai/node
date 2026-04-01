@@ -27,7 +27,7 @@ export class PodsResource {
 	}
 
 	public async delete(id: string): Promise<void> {
-		await this.client.request<{ success: true }>("DELETE", `/pods/${id}`);
+		await this.client.request<void>("DELETE", `/pods/${id}`);
 	}
 
 	public usage(id: string): Promise<PodUsageOutput> {

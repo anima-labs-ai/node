@@ -27,7 +27,7 @@ export class AddressesResource {
 	}
 
 	public async delete(id: string, agentId: string): Promise<void> {
-		await this.client.request<{ success: true }>("DELETE", `/addresses/${id}`, { agentId });
+		await this.client.request<void>("DELETE", `/addresses/${id}`, { agentId });
 	}
 
 	public validate(id: string, agentId: string): Promise<ValidateAddressOutput> {

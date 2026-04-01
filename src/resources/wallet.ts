@@ -44,11 +44,11 @@ export class WalletResource {
 	}
 
 	public async freeze(agentId: string): Promise<void> {
-		await this.client.request<{ success: true }>("POST", `/agents/${agentId}/wallet/freeze`);
+		await this.client.request<void>("POST", `/agents/${agentId}/wallet/freeze`);
 	}
 
 	public async unfreeze(agentId: string): Promise<void> {
-		await this.client.request<{ success: true }>("POST", `/agents/${agentId}/wallet/unfreeze`);
+		await this.client.request<void>("POST", `/agents/${agentId}/wallet/unfreeze`);
 	}
 
 	private toQuery(params?: WalletTransactionsParams): Record<string, string> | undefined {

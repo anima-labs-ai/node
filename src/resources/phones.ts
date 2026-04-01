@@ -32,7 +32,7 @@ export class PhonesResource {
 	}
 
 	public async release(id: string): Promise<void> {
-		await this.client.request<{ success: true }>("DELETE", `/phones/${id}`);
+		await this.client.request<void>("DELETE", `/phones/${id}`);
 	}
 
 	public updateConfig(id: string, input: PhoneConfigUpdateInput): Promise<PhoneIdentityOutput> {

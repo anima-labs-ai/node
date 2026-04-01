@@ -538,6 +538,9 @@ export interface WebhookOutput {
 	events: WebhookEventType[];
 	active: boolean;
 	description: string | null;
+	consecutiveFailures: number;
+	disabledReason: string | null;
+	disabledAt: string | null;
 	createdAt: string;
 	updatedAt: string;
 }

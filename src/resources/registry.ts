@@ -35,6 +35,6 @@ export class RegistryResource {
 	}
 
 	public async unlist(did: string): Promise<void> {
-		await this.client.request<{ success: true }>("DELETE", `/registry/agents/${encodeURIComponent(did)}`);
+		await this.client.request<void>("DELETE", `/registry/agents/${encodeURIComponent(did)}`);
 	}
 }

@@ -31,7 +31,7 @@ describe("AnimaClient", () => {
 		expect(fetchMock).toHaveBeenCalledTimes(1);
 
 		const [url, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-		expect(url).toContain("https://api.example.com/agents?limit=10");
+		expect(url).toContain("https://api.example.com/api/agents?limit=10");
 		expect(init.method).toBe("GET");
 		expect((init.headers as Record<string, string>).Authorization).toBe("Bearer mk_test");
 		expect((init.headers as Record<string, string>)["Content-Type"]).toBeUndefined();

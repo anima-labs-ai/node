@@ -32,7 +32,7 @@ export class OrganizationsResource {
 	}
 
 	public async delete(id: string): Promise<void> {
-		await this.client.request<{ success: true }>("DELETE", `/orgs/${id}`);
+		await this.client.request<void>("DELETE", `/orgs/${id}`);
 	}
 
 	public rotateKey(id: string): Promise<{ masterKey: string }> {

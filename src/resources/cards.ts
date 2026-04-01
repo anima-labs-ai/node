@@ -38,7 +38,7 @@ export class CardsResource {
 	}
 
 	public async delete(cardId: string): Promise<void> {
-		await this.client.request<{ success: true }>("DELETE", `/cards/${cardId}`);
+		await this.client.request<void>("DELETE", `/cards/${cardId}`);
 	}
 
 	public async freeze(cardId: string): Promise<Card> {
@@ -69,7 +69,7 @@ export class CardsResource {
 	}
 
 	public async deletePolicy(policyId: string): Promise<void> {
-		await this.client.request<{ success: true }>("DELETE", `/cards/policies/${policyId}`);
+		await this.client.request<void>("DELETE", `/cards/policies/${policyId}`);
 	}
 
 	public async listTransactions(params?: ListTransactionsParams): Promise<TransactionList> {

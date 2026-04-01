@@ -32,7 +32,7 @@ export class AgentsResource {
 	}
 
 	public async delete(id: string): Promise<void> {
-		await this.client.request<{ success: true }>("DELETE", `/agents/${id}`);
+		await this.client.request<void>("DELETE", `/agents/${id}`);
 	}
 
 	public rotateKey(id: string): Promise<{ apiKey: string; apiKeyPrefix: string }> {

@@ -24,7 +24,7 @@ export class DomainsResource {
 	}
 
 	public async delete(id: string): Promise<void> {
-		await this.client.request<{ success: true }>("DELETE", `/domains/${id}`);
+		await this.client.request<void>("DELETE", `/domains/${id}`);
 	}
 
 	public update(id: string, input: UpdateDomainInput): Promise<DomainOutput> {

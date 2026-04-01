@@ -36,7 +36,7 @@ export class WebhooksResource {
 	}
 
 	public async delete(id: string): Promise<void> {
-		await this.client.request<{ success: true }>("DELETE", `/webhooks/${id}`);
+		await this.client.request<void>("DELETE", `/webhooks/${id}`);
 	}
 
 	public test(id: string, event?: WebhookEventType): Promise<WebhookTestOutput> {

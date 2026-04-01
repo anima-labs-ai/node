@@ -46,7 +46,7 @@ export class VaultResource {
 	}
 
 	public async deleteCredential(id: string): Promise<void> {
-		await this.client.request<{ success: true }>("DELETE", `/vault/credentials/${id}`);
+		await this.client.request<void>("DELETE", `/vault/credentials/${id}`);
 	}
 
 	public search(params: SearchVaultParams): Promise<{ items: VaultCredential[] }> {
