@@ -1,54 +1,53 @@
 import type { RequestClient } from "../client";
 import type {
+	AvailableNumber,
 	ListPhonesParams,
-	PhoneConfigUpdateInput,
 	PhoneIdentityOutput,
 	PhoneProvisionOutput,
 	ProvisionPhoneInput,
+	ReleasePhoneInput,
+	SearchPhonesParams,
 } from "../types";
 
 export class PhonesResource {
 	public constructor(private readonly client: RequestClient) {}
 
+	public search(
+		params?: SearchPhonesParams,
+	): Promise<{ items: AvailableNumber[] }> {
+		return this.client.request<{ items: AvailableNumber[] }>(
+			"GET",
+			"/phone/search",
+			undefined,
+			this.toSearchQuery(params),
+		);
+	}
+
 	public provision(input: ProvisionPhoneInput): Promise<PhoneProvisionOutput> {
 		return this.client.request<PhoneProvisionOutput>("POST", "/phone/provision", input);
 	}
 
-	public get(id: string): Promise<PhoneIdentityOutput> {
-		return this.client.request<PhoneIdentityOutput>("GET", `/phones/${id}`);
+	public release(input: ReleasePhoneInput): Promise<{ success: true }> {
+		return this.client.request<{ success: true }>("POST", "/phone/release", input);
 	}
 
-	public list(params?: ListPhonesParams): Promise<{ items: PhoneIdentityOutput[] }> {
-		if (params?.agentId) {
-			return this.client.request<{ items: PhoneIdentityOutput[] }>(
-				"GET",
-				"/phone/numbers",
-				undefined,
-				{ agentId: params.agentId },
-			);
-		}
-
-		return this.client.request<{ items: PhoneIdentityOutput[] }>("GET", "/phones", undefined, this.toQuery(params));
+	public list(params: ListPhonesParams): Promise<{ items: PhoneIdentityOutput[] }> {
+		return this.client.request<{ items: PhoneIdentityOutput[] }>(
+			"GET",
+			"/phone/numbers",
+			undefined,
+			{ agentId: params.agentId },
+		);
 	}
 
-	public async release(id: string): Promise<void> {
-		await this.client.request<void>("DELETE", `/phones/${id}`);
-	}
-
-	public updateConfig(id: string, input: PhoneConfigUpdateInput): Promise<PhoneIdentityOutput> {
-		return this.client.request<PhoneIdentityOutput>("PATCH", `/phones/${id}`, input);
-	}
-
-	private toQuery(params?: ListPhonesParams): Record<string, string> | undefined {
-		if (!params) {
-			return undefined;
-		}
-
-		const query: Record<string, string> = {};
-		if (params.cursor) query.cursor = params.cursor;
+	private toSearchQuery(params?: SearchPhonesParams): Record<string, string | string[]> | undefined {
+		if (!params) return undefined;
+		const query: Record<string, string | string[]> = {};
+		if (params.countryCode) query.countryCode = params.countryCode;
+		if (params.areaCode) query.areaCode = params.areaCode;
+		if (params.capabilities) query["capabilities[]"] = params.capabilities;
 		if (params.limit !== undefined) query.limit = String(params.limit);
-		if (params.agentId) query.agentId = params.agentId;
-
 		return Object.keys(query).length > 0 ? query : undefined;
 	}
+
 }

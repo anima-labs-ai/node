@@ -311,14 +311,27 @@ export interface ProvisionPhoneInput {
 	capabilities?: Array<"sms" | "mms" | "voice">;
 }
 
-export interface PhoneConfigUpdateInput {
-	isPrimary?: boolean;
-	tenDlcStatus?: TenDlcStatus;
-	metadata?: Record<string, unknown>;
+export interface ReleasePhoneInput {
+	agentId: string;
+	phoneNumber: string;
 }
 
-export interface ListPhonesParams extends PaginationInput {
-	agentId?: string;
+export interface SearchPhonesParams {
+	countryCode?: string;
+	areaCode?: string;
+	capabilities?: Array<"sms" | "mms" | "voice">;
+	limit?: number;
+}
+
+export interface AvailableNumber {
+	phoneNumber: string;
+	region?: string;
+	capabilities: PhoneCapabilities;
+	monthlyCost?: number;
+}
+
+export interface ListPhonesParams {
+	agentId: string;
 }
 
 export interface PhoneProvisionOutput {

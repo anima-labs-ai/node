@@ -1,6 +1,6 @@
 {
 	"name": "@anima-labs/sdk",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "Official TypeScript/Node.js SDK for the Anima API",
 	"license": "MIT",
 	"author": "Anima Labs <support@useanima.sh>",

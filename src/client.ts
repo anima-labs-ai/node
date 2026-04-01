@@ -11,7 +11,7 @@ export interface RequestClient {
 		method: string,
 		path: string,
 		body?: unknown,
-		query?: Record<string, string>,
+		query?: Record<string, string | string[]>,
 	): Promise<T>;
 }
 
@@ -107,13 +107,19 @@ export class AnimaClient implements RequestClient {
 		});
 	}
 
-	private buildUrl(path: string, query?: Record<string, string>): string {
+	private buildUrl(path: string, query?: Record<string, string | string[]>): string {
 		const normalizedPath = path.startsWith("/") ? path : `/${path}`;
 		const url = new URL(`${this.baseUrl}/api${normalizedPath}`);
 
 		if (query) {
 			for (const [key, value] of Object.entries(query)) {
-				url.searchParams.set(key, value);
+				if (Array.isArray(value)) {
+					for (const v of value) {
+						url.searchParams.append(key, v);
+					}
+				} else {
+					url.searchParams.set(key, value);
+				}
 			}
 		}
 

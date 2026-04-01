@@ -18,7 +18,7 @@ export class MessagesResource {
 	}
 
 	public sendSms(input: SendSmsInput): Promise<MessageOutput> {
-		return this.client.request<MessageOutput>("POST", "/messages/sms", input);
+		return this.client.request<MessageOutput>("POST", "/phone/send-sms", input);
 	}
 
 	public get(id: string): Promise<MessageOutput> {
