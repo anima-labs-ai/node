@@ -1,4 +1,5 @@
 import { APIError, AuthError, ConflictError, InternalServerError, NotFoundError, RateLimitError, ValidationError } from "./errors";
+import { debug } from "./logger";
 import type { AnimaClientOptions, ApiErrorEnvelope, RequestOptions } from "./types";
 
 const DEFAULT_BASE_URL = "https://api.useanima.sh";
@@ -23,11 +24,18 @@ export class AnimaClient implements RequestClient {
 	private readonly timeout: number;
 	private readonly maxRetries: number;
 
-	public constructor(options: AnimaClientOptions) {
-		this.apiKey = options.apiKey;
-		this.baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+	public constructor(options: AnimaClientOptions = {}) {
+		const apiKey = options.apiKey ?? process.env.ANIMA_API_KEY;
+		if (!apiKey) {
+			throw new Error(
+				"Missing API key. Pass it as `apiKey` or set the ANIMA_API_KEY environment variable.",
+			);
+		}
+		this.apiKey = apiKey;
+		this.baseUrl = (options.baseUrl ?? process.env.ANIMA_API_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
 		this.timeout = options.timeout ?? DEFAULT_TIMEOUT;
 		this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
+		debug("Client initialized", { baseUrl: this.baseUrl, timeout: this.timeout, maxRetries: this.maxRetries });
 	}
 
 	public async request<T>(
@@ -41,6 +49,9 @@ export class AnimaClient implements RequestClient {
 		const timeout = options?.timeout ?? this.timeout;
 		const maxRetries = options?.maxRetries ?? this.maxRetries;
 		const idempotencyKey = options?.idempotencyKey ?? (this.isMutating(method) ? crypto.randomUUID() : undefined);
+
+		const startTime = Date.now();
+		debug(`${method} ${path}`, { attempt: 0 });
 
 		for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
 			const controller = new AbortController();
@@ -64,7 +75,10 @@ export class AnimaClient implements RequestClient {
 					signal: controller.signal,
 				});
 
+				const durationMs = Date.now() - startTime;
+
 				if (response.ok) {
+					debug(`${method} ${path} -> ${response.status}`, { durationMs });
 					if (response.status === 204) {
 						return undefined as T;
 					}
@@ -76,10 +90,12 @@ export class AnimaClient implements RequestClient {
 				if (shouldRetry) {
 					const retryAfter = this.parseRetryAfter(response);
 					const delayMs = retryAfter ?? this.jitteredDelay(attempt);
+					debug(`${method} ${path} -> ${response.status}, retrying in ${Math.round(delayMs)}ms`, { attempt: attempt + 1 });
 					await this.wait(delayMs);
 					continue;
 				}
 
+				debug(`${method} ${path} -> ${response.status} (failed)`, { durationMs });
 				throw await this.parseError(response);
 			} catch (error) {
 				if (error instanceof APIError) {
@@ -88,15 +104,19 @@ export class AnimaClient implements RequestClient {
 
 				const isAbortError = error instanceof Error && error.name === "AbortError";
 				if (isAbortError) {
+					debug(`${method} ${path} -> timeout after ${Date.now() - startTime}ms`);
 					throw new APIError(`Request timed out after ${this.timeout}ms`, 408, "TIMEOUT");
 				}
 
 				const shouldRetry = attempt < maxRetries;
 				if (shouldRetry) {
-					await this.wait(this.jitteredDelay(attempt));
+					const delayMs = this.jitteredDelay(attempt);
+					debug(`${method} ${path} -> network error, retrying in ${Math.round(delayMs)}ms`, { attempt: attempt + 1 });
+					await this.wait(delayMs);
 					continue;
 				}
 
+				debug(`${method} ${path} -> network error (failed)`, { durationMs: Date.now() - startTime });
 				if (error instanceof Error) {
 					throw new APIError(error.message, 0, "NETWORK_ERROR");
 				}

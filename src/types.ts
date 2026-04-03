@@ -1,5 +1,11 @@
 export interface AnimaClientOptions {
-	apiKey: string;
+	/**
+	 * API key for authentication. Falls back to `ANIMA_API_KEY` env var if not provided.
+	 */
+	apiKey?: string;
+	/**
+	 * Base URL for the API. Falls back to `ANIMA_API_URL` env var, then `https://api.useanima.sh`.
+	 */
 	baseUrl?: string;
 	timeout?: number;
 	maxRetries?: number;

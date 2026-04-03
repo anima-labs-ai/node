@@ -57,10 +57,11 @@ export class Anima {
 		constructEvent: constructWebhookEvent,
 	};
 
-	public constructor(options: AnimaClientOptions) {
+	public constructor(options: AnimaClientOptions = {}) {
 		this.client = new AnimaClient(options);
 
-		const baseUrl = (options.baseUrl ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+		const apiKey = options.apiKey ?? process.env.ANIMA_API_KEY ?? "";
+		const baseUrl = (options.baseUrl ?? process.env.ANIMA_API_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
 
 		this.addresses = new AddressesResource(this.client);
 		this.organizations = new OrganizationsResource(this.client);
@@ -77,7 +78,7 @@ export class Anima {
 		this.security = new SecurityResource(this.client);
 		this.vault = new VaultResource(this.client);
 		this.wallet = new WalletResource(this.client);
-		this.events = new EventsResource(options.apiKey, baseUrl);
+		this.events = new EventsResource(apiKey, baseUrl);
 		this.a2a = new A2AResource(this.client);
 		this.audit = new AuditResource(this.client);
 		this.compliance = new ComplianceResource(this.client);
