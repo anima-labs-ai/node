@@ -1,6 +1,6 @@
 import { APIError, AuthError, ConflictError, InternalServerError, NotFoundError, RateLimitError, ValidationError } from "./errors";
 import { debug } from "./logger";
-import type { AnimaClientOptions, ApiErrorEnvelope, RawResponse, RequestOptions } from "./types";
+import type { AnimaClientOptions, ApiErrorEnvelope, RawResponse, RequestEvent, RequestOptions, ResponseEvent } from "./types";
 
 const DEFAULT_BASE_URL = "https://api.useanima.sh";
 const DEFAULT_TIMEOUT = 30_000;
@@ -23,6 +23,8 @@ export class AnimaClient implements RequestClient {
 	private readonly baseUrl: string;
 	private readonly timeout: number;
 	private readonly maxRetries: number;
+	private readonly requestListeners: Array<(event: RequestEvent) => void> = [];
+	private readonly responseListeners: Array<(event: ResponseEvent) => void> = [];
 
 	public constructor(options: AnimaClientOptions = {}) {
 		const apiKey = options.apiKey ?? process.env.ANIMA_API_KEY;
@@ -36,6 +38,35 @@ export class AnimaClient implements RequestClient {
 		this.timeout = options.timeout ?? DEFAULT_TIMEOUT;
 		this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
 		debug("Client initialized", { baseUrl: this.baseUrl, timeout: this.timeout, maxRetries: this.maxRetries });
+	}
+
+	public on(event: "request", listener: (data: RequestEvent) => void): this;
+	public on(event: "response", listener: (data: ResponseEvent) => void): this;
+	public on(event: "request" | "response", listener: (data: never) => void): this {
+		if (event === "request") this.requestListeners.push(listener as unknown as (data: RequestEvent) => void);
+		else if (event === "response") this.responseListeners.push(listener as unknown as (data: ResponseEvent) => void);
+		return this;
+	}
+
+	public off(event: "request", listener: (data: RequestEvent) => void): this;
+	public off(event: "response", listener: (data: ResponseEvent) => void): this;
+	public off(event: "request" | "response", listener: (data: never) => void): this {
+		if (event === "request") {
+			const idx = this.requestListeners.indexOf(listener as unknown as (data: RequestEvent) => void);
+			if (idx !== -1) this.requestListeners.splice(idx, 1);
+		} else if (event === "response") {
+			const idx = this.responseListeners.indexOf(listener as unknown as (data: ResponseEvent) => void);
+			if (idx !== -1) this.responseListeners.splice(idx, 1);
+		}
+		return this;
+	}
+
+	private emitRequest(data: RequestEvent): void {
+		for (const fn of this.requestListeners) fn(data);
+	}
+
+	private emitResponse(data: ResponseEvent): void {
+		for (const fn of this.responseListeners) fn(data);
 	}
 
 	public async request<T>(
@@ -68,6 +99,10 @@ export class AnimaClient implements RequestClient {
 					headers["Idempotency-Key"] = idempotencyKey;
 				}
 
+				if (attempt === 0) {
+					this.emitRequest({ method, path, headers: { ...headers, Authorization: "Bearer [REDACTED]" } });
+				}
+
 				const response = await fetch(url, {
 					method,
 					headers,
@@ -76,6 +111,9 @@ export class AnimaClient implements RequestClient {
 				});
 
 				const durationMs = Date.now() - startTime;
+				const responseHeaders: Record<string, string> = {};
+				response.headers.forEach((v, k) => { responseHeaders[k] = v; });
+				this.emitResponse({ method, path, status: response.status, durationMs, headers: responseHeaders });
 
 				if (response.ok) {
 					debug(`${method} ${path} -> ${response.status}`, { durationMs });

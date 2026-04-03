@@ -21,7 +21,7 @@ import { ComplianceResource } from "./resources/compliance";
 import { AnomalyResource } from "./resources/anomaly";
 import { VoicesResource } from "./resources/voices";
 import { CallsResource } from "./resources/calls";
-import type { AnimaClientOptions } from "./types";
+import type { AnimaClientOptions, RequestEvent, ResponseEvent } from "./types";
 import { constructWebhookEvent, verifyWebhookSignature } from "./webhooks";
 
 const DEFAULT_BASE_URL = "https://api.useanima.sh";
@@ -86,6 +86,20 @@ export class Anima {
 		this.voices = new VoicesResource(this.client);
 		this.calls = new CallsResource(this.client);
 	}
+
+	public on(event: "request", listener: (data: RequestEvent) => void): this;
+	public on(event: "response", listener: (data: ResponseEvent) => void): this;
+	public on(event: "request" | "response", listener: (data: never) => void): this {
+		this.client.on(event as "request", listener as (data: RequestEvent) => void);
+		return this;
+	}
+
+	public off(event: "request", listener: (data: RequestEvent) => void): this;
+	public off(event: "response", listener: (data: ResponseEvent) => void): this;
+	public off(event: "request" | "response", listener: (data: never) => void): this {
+		this.client.off(event as "request", listener as (data: RequestEvent) => void);
+		return this;
+	}
 }
 
 export { AnimaClient } from "./client";
@@ -101,4 +115,5 @@ export {
 	ValidationError,
 } from "./errors";
 export { AnimaEventStream, EventsResource } from "./resources/events";
+export { webhookMiddleware } from "./middleware";
 export * from "./types";

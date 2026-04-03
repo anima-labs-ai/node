@@ -37,6 +37,22 @@ export interface WithRawResponse<T> {
 	response: RawResponse;
 }
 
+/** Emitted before each HTTP request */
+export interface RequestEvent {
+	method: string;
+	path: string;
+	headers: Record<string, string>;
+}
+
+/** Emitted after each HTTP response */
+export interface ResponseEvent {
+	method: string;
+	path: string;
+	status: number;
+	durationMs: number;
+	headers: Record<string, string>;
+}
+
 export interface CursorPagination {
 	nextCursor: string | null;
 	hasMore: boolean;
