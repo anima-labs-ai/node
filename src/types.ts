@@ -5,6 +5,16 @@ export interface AnimaClientOptions {
 	maxRetries?: number;
 }
 
+/** Per-request options for mutating operations */
+export interface RequestOptions {
+	/** Idempotency key for safe retries. Auto-generated UUID if not provided on retry. */
+	idempotencyKey?: string;
+	/** Request timeout in milliseconds (overrides client default) */
+	timeout?: number;
+	/** Max retries (overrides client default) */
+	maxRetries?: number;
+}
+
 export interface CursorPagination {
 	nextCursor: string | null;
 	hasMore: boolean;

@@ -1,5 +1,5 @@
 import { APIError, AuthError, ConflictError, InternalServerError, NotFoundError, RateLimitError, ValidationError } from "./errors";
-import type { AnimaClientOptions, ApiErrorEnvelope } from "./types";
+import type { AnimaClientOptions, ApiErrorEnvelope, RequestOptions } from "./types";
 
 const DEFAULT_BASE_URL = "https://api.useanima.sh";
 const DEFAULT_TIMEOUT = 30_000;
@@ -12,6 +12,7 @@ export interface RequestClient {
 		path: string,
 		body?: unknown,
 		query?: Record<string, string | string[]>,
+		options?: RequestOptions,
 	): Promise<T>;
 }
 
@@ -33,12 +34,16 @@ export class AnimaClient implements RequestClient {
 		path: string,
 		body?: unknown,
 		query?: Record<string, string>,
+		options?: RequestOptions,
 	): Promise<T> {
 		const url = this.buildUrl(path, query);
+		const timeout = options?.timeout ?? this.timeout;
+		const maxRetries = options?.maxRetries ?? this.maxRetries;
+		const idempotencyKey = options?.idempotencyKey ?? (this.isMutating(method) ? crypto.randomUUID() : undefined);
 
-		for (let attempt = 0; attempt <= this.maxRetries; attempt += 1) {
+		for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
 			const controller = new AbortController();
-			const timeoutId = setTimeout(() => controller.abort(), this.timeout);
+			const timeoutId = setTimeout(() => controller.abort(), timeout);
 
 			try {
 			const headers: Record<string, string> = {
@@ -46,6 +51,9 @@ export class AnimaClient implements RequestClient {
 				};
 				if (body !== undefined) {
 					headers["Content-Type"] = "application/json";
+				}
+				if (idempotencyKey) {
+					headers["Idempotency-Key"] = idempotencyKey;
 				}
 
 				const response = await fetch(url, {
@@ -63,7 +71,7 @@ export class AnimaClient implements RequestClient {
 					return (await response.json()) as T;
 				}
 
-				const shouldRetry = this.shouldRetry(response.status) && attempt < this.maxRetries;
+				const shouldRetry = this.shouldRetry(response.status) && attempt < maxRetries;
 				if (shouldRetry) {
 					const delayMs = RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)] ?? 4_000;
 					await this.wait(delayMs);
@@ -81,7 +89,7 @@ export class AnimaClient implements RequestClient {
 					throw new APIError(`Request timed out after ${this.timeout}ms`, 408, "TIMEOUT");
 				}
 
-				const shouldRetry = attempt < this.maxRetries;
+				const shouldRetry = attempt < maxRetries;
 				if (shouldRetry) {
 					const delayMs = RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)] ?? 4_000;
 					await this.wait(delayMs);
@@ -124,6 +132,10 @@ export class AnimaClient implements RequestClient {
 		}
 
 		return url.toString();
+	}
+
+	private isMutating(method: string): boolean {
+		return method !== "GET" && method !== "HEAD" && method !== "OPTIONS";
 	}
 
 	private shouldRetry(status: number): boolean {

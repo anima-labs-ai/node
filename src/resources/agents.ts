@@ -4,14 +4,15 @@ import type {
 	AgentListParams,
 	AgentOutput,
 	CreateAgentInput,
+	RequestOptions,
 	UpdateAgentInput,
 } from "../types";
 
 export class AgentsResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public create(input: CreateAgentInput): Promise<AgentOutput> {
-		return this.client.request<AgentOutput>("POST", "/agents", input);
+	public create(input: CreateAgentInput, options?: RequestOptions): Promise<AgentOutput> {
+		return this.client.request<AgentOutput>("POST", "/agents", input, undefined, options);
 	}
 
 	public get(id: string): Promise<AgentOutput> {
@@ -25,19 +26,21 @@ export class AgentsResource {
 		});
 	}
 
-	public update(id: string, input: UpdateAgentInput): Promise<AgentOutput> {
-		return this.client.request<AgentOutput>("PATCH", `/agents/${id}`, { ...input, id });
+	public update(id: string, input: UpdateAgentInput, options?: RequestOptions): Promise<AgentOutput> {
+		return this.client.request<AgentOutput>("PATCH", `/agents/${id}`, { ...input, id }, undefined, options);
 	}
 
-	public async delete(id: string): Promise<void> {
-		await this.client.request<void>("DELETE", `/agents/${id}`);
+	public async delete(id: string, options?: RequestOptions): Promise<void> {
+		await this.client.request<void>("DELETE", `/agents/${id}`, undefined, undefined, options);
 	}
 
-	public rotateKey(id: string): Promise<{ apiKey: string; apiKeyPrefix: string }> {
+	public rotateKey(id: string, options?: RequestOptions): Promise<{ apiKey: string; apiKeyPrefix: string }> {
 		return this.client.request<{ apiKey: string; apiKeyPrefix: string }>(
 			"POST",
 			`/agents/${id}/rotate-key`,
 			{ id },
+			undefined,
+			options,
 		);
 	}
 

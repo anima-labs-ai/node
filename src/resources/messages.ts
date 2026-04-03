@@ -6,6 +6,7 @@ import type {
 	MessageOutput,
 	MessageSearchParams,
 	PaginatedResponse,
+	RequestOptions,
 	SendEmailInput,
 	SendSmsInput,
 	UploadAttachmentInput,
@@ -14,12 +15,12 @@ import type {
 export class MessagesResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public sendEmail(input: SendEmailInput): Promise<MessageOutput> {
-		return this.client.request<MessageOutput>("POST", "/messages/email", input);
+	public sendEmail(input: SendEmailInput, options?: RequestOptions): Promise<MessageOutput> {
+		return this.client.request<MessageOutput>("POST", "/messages/email", input, undefined, options);
 	}
 
-	public sendSms(input: SendSmsInput): Promise<MessageOutput> {
-		return this.client.request<MessageOutput>("POST", "/phone/send-sms", input);
+	public sendSms(input: SendSmsInput, options?: RequestOptions): Promise<MessageOutput> {
+		return this.client.request<MessageOutput>("POST", "/phone/send-sms", input, undefined, options);
 	}
 
 	public get(id: string): Promise<MessageOutput> {
