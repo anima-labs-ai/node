@@ -1,9 +1,9 @@
 import type { RequestClient } from "../client";
+import { PageIterator } from "../pagination";
 import type {
 	CreateOrganizationInput,
 	OrganizationListParams,
 	OrganizationOutput,
-	PaginatedResponse,
 	UpdateOrganizationInput,
 } from "../types";
 
@@ -18,13 +18,11 @@ export class OrganizationsResource {
 		return this.client.request<OrganizationOutput>("GET", `/orgs/${id}`);
 	}
 
-	public list(params?: OrganizationListParams): Promise<PaginatedResponse<OrganizationOutput>> {
-		return this.client.request<PaginatedResponse<OrganizationOutput>>(
-			"GET",
-			"/orgs",
-			undefined,
-			this.toQuery(params),
-		);
+	public list(params?: OrganizationListParams): PageIterator<OrganizationOutput> {
+		return new PageIterator<OrganizationOutput>((cursor) => {
+			const merged = cursor ? { ...params, cursor } : params;
+			return this.client.request("GET", "/orgs", undefined, this.toQuery(merged));
+		});
 	}
 
 	public update(id: string, input: UpdateOrganizationInput): Promise<OrganizationOutput> {

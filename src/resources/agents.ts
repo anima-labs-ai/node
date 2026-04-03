@@ -1,9 +1,9 @@
 import type { RequestClient } from "../client";
+import { PageIterator } from "../pagination";
 import type {
 	AgentListParams,
 	AgentOutput,
 	CreateAgentInput,
-	PaginatedResponse,
 	UpdateAgentInput,
 } from "../types";
 
@@ -18,13 +18,11 @@ export class AgentsResource {
 		return this.client.request<AgentOutput>("GET", `/agents/${id}`);
 	}
 
-	public list(params?: AgentListParams): Promise<PaginatedResponse<AgentOutput>> {
-		return this.client.request<PaginatedResponse<AgentOutput>>(
-			"GET",
-			"/agents",
-			undefined,
-			this.toQuery(params),
-		);
+	public list(params?: AgentListParams): PageIterator<AgentOutput> {
+		return new PageIterator<AgentOutput>((cursor) => {
+			const merged = cursor ? { ...params, cursor } : params;
+			return this.client.request("GET", "/agents", undefined, this.toQuery(merged));
+		});
 	}
 
 	public update(id: string, input: UpdateAgentInput): Promise<AgentOutput> {

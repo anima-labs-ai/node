@@ -1,22 +1,20 @@
 import type { RequestClient } from "../client";
+import { PageIterator } from "../pagination";
 import type {
 	AttachmentDownloadOutput,
 	EmailListParams,
 	MessageOutput,
-	PaginatedResponse,
 	UploadAttachmentInput,
 } from "../types";
 
 export class EmailsResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public list(params?: EmailListParams): Promise<PaginatedResponse<MessageOutput>> {
-		return this.client.request<PaginatedResponse<MessageOutput>>(
-			"GET",
-			"/email",
-			undefined,
-			this.toQuery(params),
-		);
+	public list(params?: EmailListParams): PageIterator<MessageOutput> {
+		return new PageIterator<MessageOutput>((cursor) => {
+			const merged = cursor ? { ...params, cursor } : params;
+			return this.client.request("GET", "/email", undefined, this.toQuery(merged));
+		});
 	}
 
 	public uploadAttachment(

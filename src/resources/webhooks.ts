@@ -1,7 +1,7 @@
 import type { RequestClient } from "../client";
+import { PageIterator } from "../pagination";
 import type {
 	CreateWebhookInput,
-	PaginatedResponse,
 	WebhookDeliveryListParams,
 	WebhookDeliveryOutput,
 	WebhookEventType,
@@ -22,13 +22,11 @@ export class WebhooksResource {
 		return this.client.request<WebhookOutput>("GET", `/webhooks/${id}`);
 	}
 
-	public list(params?: WebhookListParams): Promise<PaginatedResponse<WebhookOutput>> {
-		return this.client.request<PaginatedResponse<WebhookOutput>>(
-			"GET",
-			"/webhooks",
-			undefined,
-			this.toListQuery(params),
-		);
+	public list(params?: WebhookListParams): PageIterator<WebhookOutput> {
+		return new PageIterator<WebhookOutput>((cursor) => {
+			const merged = cursor ? { ...params, cursor } : params;
+			return this.client.request("GET", "/webhooks", undefined, this.toListQuery(merged));
+		});
 	}
 
 	public update(id: string, input: UpdateWebhookInput): Promise<WebhookOutput> {
@@ -46,13 +44,11 @@ export class WebhooksResource {
 	public listDeliveries(
 		id: string,
 		params?: WebhookDeliveryListParams,
-	): Promise<PaginatedResponse<WebhookDeliveryOutput>> {
-		return this.client.request<PaginatedResponse<WebhookDeliveryOutput>>(
-			"GET",
-			`/webhooks/${id}/deliveries`,
-			undefined,
-			this.toDeliveryQuery(params, id),
-		);
+	): PageIterator<WebhookDeliveryOutput> {
+		return new PageIterator<WebhookDeliveryOutput>((cursor) => {
+			const merged = cursor ? { ...params, cursor } : params;
+			return this.client.request("GET", `/webhooks/${id}/deliveries`, undefined, this.toDeliveryQuery(merged, id));
+		});
 	}
 
 	private toListQuery(params?: WebhookListParams): Record<string, string> | undefined {

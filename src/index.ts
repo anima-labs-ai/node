@@ -88,6 +88,7 @@ export class Anima {
 }
 
 export { AnimaClient } from "./client";
+export { PageIterator } from "./pagination";
 export {
 	AnimaError,
 	APIError,

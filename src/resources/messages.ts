@@ -1,4 +1,5 @@
 import type { RequestClient } from "../client";
+import { PageIterator } from "../pagination";
 import type {
 	AttachmentDownloadOutput,
 	MessageListParams,
@@ -25,13 +26,11 @@ export class MessagesResource {
 		return this.client.request<MessageOutput>("GET", `/messages/${id}`);
 	}
 
-	public list(params?: MessageListParams): Promise<PaginatedResponse<MessageOutput>> {
-		return this.client.request<PaginatedResponse<MessageOutput>>(
-			"GET",
-			"/messages",
-			undefined,
-			this.toListQuery(params),
-		);
+	public list(params?: MessageListParams): PageIterator<MessageOutput> {
+		return new PageIterator<MessageOutput>((cursor) => {
+			const merged = cursor ? { ...params, cursor } : params;
+			return this.client.request("GET", "/messages", undefined, this.toListQuery(merged));
+		});
 	}
 
 	public search(

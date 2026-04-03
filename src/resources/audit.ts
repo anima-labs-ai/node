@@ -1,6 +1,6 @@
 import type { RequestClient } from "../client";
+import { PageIterator } from "../pagination";
 import type {
-	PaginatedResponse,
 	AuditLogOutput,
 	AuditLogListParams,
 	AuditLogExportParams,
@@ -10,13 +10,11 @@ import type {
 export class AuditResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public list(orgId: string, params?: AuditLogListParams): Promise<PaginatedResponse<AuditLogOutput>> {
-		return this.client.request<PaginatedResponse<AuditLogOutput>>(
-			"GET",
-			`/v1/orgs/${orgId}/audit/logs`,
-			undefined,
-			this.toQuery(params),
-		);
+	public list(orgId: string, params?: AuditLogListParams): PageIterator<AuditLogOutput> {
+		return new PageIterator<AuditLogOutput>((cursor) => {
+			const merged = cursor ? { ...params, cursor } : params;
+			return this.client.request("GET", `/v1/orgs/${orgId}/audit/logs`, undefined, this.toQuery(merged));
+		});
 	}
 
 	public get(orgId: string, logId: string): Promise<AuditLogOutput> {
