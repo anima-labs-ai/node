@@ -1,6 +1,7 @@
 import type { RequestClient } from "../client";
 import type {
 	PaginatedResponse,
+	RequestOptions,
 	SecurityEventOutput,
 	SecurityEventsListParams,
 	SecurityScanInput,
@@ -10,16 +11,17 @@ import type {
 export class SecurityResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public scanContent(input: SecurityScanInput): Promise<SecurityScanOutput> {
-		return this.client.request<SecurityScanOutput>("POST", "/security/scan", input);
+	public scanContent(input: SecurityScanInput, options?: RequestOptions): Promise<SecurityScanOutput> {
+		return this.client.request<SecurityScanOutput>("POST", "/security/scan", input, undefined, options);
 	}
 
-	public listEvents(params: SecurityEventsListParams): Promise<PaginatedResponse<SecurityEventOutput>> {
+	public listEvents(params: SecurityEventsListParams, options?: RequestOptions): Promise<PaginatedResponse<SecurityEventOutput>> {
 		return this.client.request<PaginatedResponse<SecurityEventOutput>>(
 			"GET",
 			`/v1/orgs/${params.orgId}/security/events`,
 			undefined,
 			this.toQuery(params),
+			options,
 		);
 	}
 

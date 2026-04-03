@@ -23,8 +23,8 @@ export class MessagesResource {
 		return this.client.request<MessageOutput>("POST", "/phone/send-sms", input, undefined, options);
 	}
 
-	public get(id: string): Promise<MessageOutput> {
-		return this.client.request<MessageOutput>("GET", `/messages/${id}`);
+	public get(id: string, options?: RequestOptions): Promise<MessageOutput> {
+		return this.client.request<MessageOutput>("GET", `/messages/${id}`, undefined, undefined, options);
 	}
 
 	public list(params?: MessageListParams): PageIterator<MessageOutput> {
@@ -36,18 +36,20 @@ export class MessagesResource {
 
 	public search(
 		query: string,
-		options?: MessageSearchParams,
+		searchParams?: MessageSearchParams,
+		options?: RequestOptions,
 	): Promise<PaginatedResponse<MessageOutput>> {
 		return this.client.request<PaginatedResponse<MessageOutput>>("POST", "/messages/search", {
 			query,
-			filters: options?.filters,
-			pagination: options?.pagination,
-		});
+			filters: searchParams?.filters,
+			pagination: searchParams?.pagination,
+		}, undefined, options);
 	}
 
 	public uploadAttachment(
 		messageId: string,
 		input: UploadAttachmentInput,
+		options?: RequestOptions,
 	): Promise<{
 		id: string;
 		filename: string;
@@ -60,11 +62,11 @@ export class MessagesResource {
 		return this.client.request("POST", `/messages/${messageId}/attachments`, {
 			messageId,
 			...input,
-		});
+		}, undefined, options);
 	}
 
-	public getAttachmentUrl(attachmentId: string): Promise<AttachmentDownloadOutput> {
-		return this.client.request<AttachmentDownloadOutput>("GET", `/attachments/${attachmentId}/download`);
+	public getAttachmentUrl(attachmentId: string, options?: RequestOptions): Promise<AttachmentDownloadOutput> {
+		return this.client.request<AttachmentDownloadOutput>("GET", `/attachments/${attachmentId}/download`, undefined, undefined, options);
 	}
 
 	private toListQuery(params?: MessageListParams): Record<string, string> | undefined {

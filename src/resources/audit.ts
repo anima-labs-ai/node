@@ -5,6 +5,7 @@ import type {
 	AuditLogListParams,
 	AuditLogExportParams,
 	AuditLogExportOutput,
+	RequestOptions,
 } from "../types";
 
 export class AuditResource {
@@ -17,15 +18,17 @@ export class AuditResource {
 		});
 	}
 
-	public get(orgId: string, logId: string): Promise<AuditLogOutput> {
-		return this.client.request<AuditLogOutput>("GET", `/v1/orgs/${orgId}/audit/logs/${logId}`);
+	public get(orgId: string, logId: string, options?: RequestOptions): Promise<AuditLogOutput> {
+		return this.client.request<AuditLogOutput>("GET", `/v1/orgs/${orgId}/audit/logs/${logId}`, undefined, undefined, options);
 	}
 
-	public export(orgId: string, params?: AuditLogExportParams): Promise<AuditLogExportOutput> {
+	public export(orgId: string, params?: AuditLogExportParams, options?: RequestOptions): Promise<AuditLogExportOutput> {
 		return this.client.request<AuditLogExportOutput>(
 			"POST",
 			`/v1/orgs/${orgId}/audit/export`,
 			params,
+			undefined,
+			options,
 		);
 	}
 

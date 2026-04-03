@@ -5,30 +5,32 @@ import type {
 	CreateCallInput,
 	CreateCallOutput,
 	ListCallsParams,
+	RequestOptions,
 } from "../types";
 
 export class CallsResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public list(params?: ListCallsParams): Promise<{ calls: Call[]; total: number }> {
+	public list(params?: ListCallsParams, options?: RequestOptions): Promise<{ calls: Call[]; total: number }> {
 		return this.client.request<{ calls: Call[]; total: number }>(
 			"GET",
 			"/voice/calls",
 			undefined,
 			this.toQuery(params),
+			options,
 		);
 	}
 
-	public get(callId: string): Promise<Call> {
-		return this.client.request<Call>("GET", `/voice/calls/${callId}`);
+	public get(callId: string, options?: RequestOptions): Promise<Call> {
+		return this.client.request<Call>("GET", `/voice/calls/${callId}`, undefined, undefined, options);
 	}
 
-	public create(input: CreateCallInput): Promise<CreateCallOutput> {
-		return this.client.request<CreateCallOutput>("POST", "/voice/calls", input);
+	public create(input: CreateCallInput, options?: RequestOptions): Promise<CreateCallOutput> {
+		return this.client.request<CreateCallOutput>("POST", "/voice/calls", input, undefined, options);
 	}
 
-	public getTranscript(callId: string): Promise<CallTranscript> {
-		return this.client.request<CallTranscript>("GET", `/voice/calls/${callId}/transcript`);
+	public getTranscript(callId: string, options?: RequestOptions): Promise<CallTranscript> {
+		return this.client.request<CallTranscript>("GET", `/voice/calls/${callId}/transcript`, undefined, undefined, options);
 	}
 
 	private toQuery(params?: ListCallsParams): Record<string, string> | undefined {

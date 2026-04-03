@@ -1,6 +1,6 @@
 import { APIError, AuthError, ConflictError, InternalServerError, NotFoundError, RateLimitError, ValidationError } from "./errors";
 import { debug } from "./logger";
-import type { AnimaClientOptions, ApiErrorEnvelope, RequestOptions } from "./types";
+import type { AnimaClientOptions, ApiErrorEnvelope, RawResponse, RequestOptions } from "./types";
 
 const DEFAULT_BASE_URL = "https://api.useanima.sh";
 const DEFAULT_TIMEOUT = 30_000;
@@ -79,11 +79,17 @@ export class AnimaClient implements RequestClient {
 
 				if (response.ok) {
 					debug(`${method} ${path} -> ${response.status}`, { durationMs });
-					if (response.status === 204) {
-						return undefined as T;
+
+					const data = response.status === 204 ? (undefined as T) : ((await response.json()) as T);
+
+					if (options?.rawResponse) {
+						return {
+							data,
+							response: this.buildRawResponse(response, durationMs),
+						} as T;
 					}
 
-					return (await response.json()) as T;
+					return data;
 				}
 
 				const shouldRetry = this.shouldRetry(response.status) && attempt < maxRetries;
@@ -174,6 +180,19 @@ export class AnimaClient implements RequestClient {
 
 	private shouldRetry(status: number): boolean {
 		return status === 429 || status >= 500;
+	}
+
+	private buildRawResponse(response: Response, durationMs: number): RawResponse {
+		const headers: Record<string, string> = {};
+		response.headers.forEach((value, key) => {
+			headers[key] = value;
+		});
+		return {
+			status: response.status,
+			headers,
+			requestId: response.headers.get("x-request-id"),
+			responseTimeMs: durationMs,
+		};
 	}
 
 	private async parseError(response: Response): Promise<APIError> {

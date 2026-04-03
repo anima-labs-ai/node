@@ -15,8 +15,8 @@ export class AgentsResource {
 		return this.client.request<AgentOutput>("POST", "/agents", input, undefined, options);
 	}
 
-	public get(id: string): Promise<AgentOutput> {
-		return this.client.request<AgentOutput>("GET", `/agents/${id}`);
+	public get(id: string, options?: RequestOptions): Promise<AgentOutput> {
+		return this.client.request<AgentOutput>("GET", `/agents/${id}`, undefined, undefined, options);
 	}
 
 	public list(params?: AgentListParams): PageIterator<AgentOutput> {

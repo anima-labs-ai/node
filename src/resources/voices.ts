@@ -1,15 +1,16 @@
 import type { RequestClient } from "../client";
-import type { ListVoicesParams, Voice } from "../types";
+import type { ListVoicesParams, RequestOptions, Voice } from "../types";
 
 export class VoicesResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public list(params?: ListVoicesParams): Promise<{ voices: Voice[] }> {
+	public list(params?: ListVoicesParams, options?: RequestOptions): Promise<{ voices: Voice[] }> {
 		return this.client.request<{ voices: Voice[] }>(
 			"GET",
 			"/voice/catalog",
 			undefined,
 			this.toQuery(params),
+			options,
 		);
 	}
 

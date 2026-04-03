@@ -4,18 +4,19 @@ import type {
 	CreateOrganizationInput,
 	OrganizationListParams,
 	OrganizationOutput,
+	RequestOptions,
 	UpdateOrganizationInput,
 } from "../types";
 
 export class OrganizationsResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public create(input: CreateOrganizationInput): Promise<OrganizationOutput> {
-		return this.client.request<OrganizationOutput>("POST", "/orgs", input);
+	public create(input: CreateOrganizationInput, options?: RequestOptions): Promise<OrganizationOutput> {
+		return this.client.request<OrganizationOutput>("POST", "/orgs", input, undefined, options);
 	}
 
-	public get(id: string): Promise<OrganizationOutput> {
-		return this.client.request<OrganizationOutput>("GET", `/orgs/${id}`);
+	public get(id: string, options?: RequestOptions): Promise<OrganizationOutput> {
+		return this.client.request<OrganizationOutput>("GET", `/orgs/${id}`, undefined, undefined, options);
 	}
 
 	public list(params?: OrganizationListParams): PageIterator<OrganizationOutput> {
@@ -25,16 +26,16 @@ export class OrganizationsResource {
 		});
 	}
 
-	public update(id: string, input: UpdateOrganizationInput): Promise<OrganizationOutput> {
-		return this.client.request<OrganizationOutput>("PATCH", `/orgs/${id}`, { ...input, id });
+	public update(id: string, input: UpdateOrganizationInput, options?: RequestOptions): Promise<OrganizationOutput> {
+		return this.client.request<OrganizationOutput>("PATCH", `/orgs/${id}`, { ...input, id }, undefined, options);
 	}
 
-	public async delete(id: string): Promise<void> {
-		await this.client.request<void>("DELETE", `/orgs/${id}`);
+	public async delete(id: string, options?: RequestOptions): Promise<void> {
+		await this.client.request<void>("DELETE", `/orgs/${id}`, undefined, undefined, options);
 	}
 
-	public rotateKey(id: string): Promise<{ masterKey: string }> {
-		return this.client.request<{ masterKey: string }>("POST", `/orgs/${id}/rotate-key`, { id });
+	public rotateKey(id: string, options?: RequestOptions): Promise<{ masterKey: string }> {
+		return this.client.request<{ masterKey: string }>("POST", `/orgs/${id}/rotate-key`, { id }, undefined, options);
 	}
 
 	private toQuery(params?: OrganizationListParams): Record<string, string> | undefined {

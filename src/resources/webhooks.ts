@@ -2,6 +2,7 @@ import type { RequestClient } from "../client";
 import { PageIterator } from "../pagination";
 import type {
 	CreateWebhookInput,
+	RequestOptions,
 	WebhookDeliveryListParams,
 	WebhookDeliveryOutput,
 	WebhookEventType,
@@ -14,12 +15,12 @@ import type {
 export class WebhooksResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public create(input: CreateWebhookInput): Promise<WebhookOutput> {
-		return this.client.request<WebhookOutput>("POST", "/webhooks", input);
+	public create(input: CreateWebhookInput, options?: RequestOptions): Promise<WebhookOutput> {
+		return this.client.request<WebhookOutput>("POST", "/webhooks", input, undefined, options);
 	}
 
-	public get(id: string): Promise<WebhookOutput> {
-		return this.client.request<WebhookOutput>("GET", `/webhooks/${id}`);
+	public get(id: string, options?: RequestOptions): Promise<WebhookOutput> {
+		return this.client.request<WebhookOutput>("GET", `/webhooks/${id}`, undefined, undefined, options);
 	}
 
 	public list(params?: WebhookListParams): PageIterator<WebhookOutput> {
@@ -29,16 +30,16 @@ export class WebhooksResource {
 		});
 	}
 
-	public update(id: string, input: UpdateWebhookInput): Promise<WebhookOutput> {
-		return this.client.request<WebhookOutput>("PUT", `/webhooks/${id}`, { ...input, id });
+	public update(id: string, input: UpdateWebhookInput, options?: RequestOptions): Promise<WebhookOutput> {
+		return this.client.request<WebhookOutput>("PUT", `/webhooks/${id}`, { ...input, id }, undefined, options);
 	}
 
-	public async delete(id: string): Promise<void> {
-		await this.client.request<void>("DELETE", `/webhooks/${id}`);
+	public async delete(id: string, options?: RequestOptions): Promise<void> {
+		await this.client.request<void>("DELETE", `/webhooks/${id}`, undefined, undefined, options);
 	}
 
-	public test(id: string, event?: WebhookEventType): Promise<WebhookTestOutput> {
-		return this.client.request<WebhookTestOutput>("POST", `/webhooks/${id}/test`, { id, event });
+	public test(id: string, event?: WebhookEventType, options?: RequestOptions): Promise<WebhookTestOutput> {
+		return this.client.request<WebhookTestOutput>("POST", `/webhooks/${id}/test`, { id, event }, undefined, options);
 	}
 
 	public listDeliveries(

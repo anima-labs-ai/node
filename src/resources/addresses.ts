@@ -3,6 +3,7 @@ import type {
 	AddressOutput,
 	CreateAddressInput,
 	ListAddressesParams,
+	RequestOptions,
 	UpdateAddressInput,
 	ValidateAddressOutput,
 } from "../types";
@@ -10,28 +11,28 @@ import type {
 export class AddressesResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public create(input: CreateAddressInput): Promise<AddressOutput> {
-		return this.client.request<AddressOutput>("POST", "/addresses", input);
+	public create(input: CreateAddressInput, options?: RequestOptions): Promise<AddressOutput> {
+		return this.client.request<AddressOutput>("POST", "/addresses", input, undefined, options);
 	}
 
-	public list(params?: ListAddressesParams): Promise<{ items: AddressOutput[] }> {
-		return this.client.request<{ items: AddressOutput[] }>("GET", "/addresses", undefined, this.toQuery(params));
+	public list(params?: ListAddressesParams, options?: RequestOptions): Promise<{ items: AddressOutput[] }> {
+		return this.client.request<{ items: AddressOutput[] }>("GET", "/addresses", undefined, this.toQuery(params), options);
 	}
 
-	public get(id: string, agentId: string): Promise<AddressOutput> {
-		return this.client.request<AddressOutput>("GET", `/addresses/${id}`, undefined, { agentId });
+	public get(id: string, agentId: string, options?: RequestOptions): Promise<AddressOutput> {
+		return this.client.request<AddressOutput>("GET", `/addresses/${id}`, undefined, { agentId }, options);
 	}
 
-	public update(id: string, input: UpdateAddressInput): Promise<AddressOutput> {
-		return this.client.request<AddressOutput>("PUT", `/addresses/${id}`, input);
+	public update(id: string, input: UpdateAddressInput, options?: RequestOptions): Promise<AddressOutput> {
+		return this.client.request<AddressOutput>("PUT", `/addresses/${id}`, input, undefined, options);
 	}
 
-	public async delete(id: string, agentId: string): Promise<void> {
-		await this.client.request<void>("DELETE", `/addresses/${id}`, { agentId });
+	public async delete(id: string, agentId: string, options?: RequestOptions): Promise<void> {
+		await this.client.request<void>("DELETE", `/addresses/${id}`, { agentId }, undefined, options);
 	}
 
-	public validate(id: string, agentId: string): Promise<ValidateAddressOutput> {
-		return this.client.request<ValidateAddressOutput>("POST", `/addresses/${id}/validate`, { agentId });
+	public validate(id: string, agentId: string, options?: RequestOptions): Promise<ValidateAddressOutput> {
+		return this.client.request<ValidateAddressOutput>("POST", `/addresses/${id}/validate`, { agentId }, undefined, options);
 	}
 
 	private toQuery(params?: ListAddressesParams): Record<string, string> | undefined {

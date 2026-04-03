@@ -4,6 +4,7 @@ import type {
 	AttachmentDownloadOutput,
 	EmailListParams,
 	MessageOutput,
+	RequestOptions,
 	UploadAttachmentInput,
 } from "../types";
 
@@ -20,6 +21,7 @@ export class EmailsResource {
 	public uploadAttachment(
 		messageId: string,
 		input: UploadAttachmentInput,
+		options?: RequestOptions,
 	): Promise<{
 		id: string;
 		filename: string;
@@ -32,11 +34,11 @@ export class EmailsResource {
 		return this.client.request("POST", `/messages/${messageId}/attachments`, {
 			messageId,
 			...input,
-		});
+		}, undefined, options);
 	}
 
-	public getAttachmentUrl(attachmentId: string): Promise<AttachmentDownloadOutput> {
-		return this.client.request<AttachmentDownloadOutput>("GET", `/attachments/${attachmentId}/download`);
+	public getAttachmentUrl(attachmentId: string, options?: RequestOptions): Promise<AttachmentDownloadOutput> {
+		return this.client.request<AttachmentDownloadOutput>("GET", `/attachments/${attachmentId}/download`, undefined, undefined, options);
 	}
 
 	private toQuery(params?: EmailListParams): Record<string, string> | undefined {
