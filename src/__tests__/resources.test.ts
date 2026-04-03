@@ -32,12 +32,12 @@ describe("resource methods", () => {
 		await resource.rotateKey("org_1");
 		await resource.delete("org_1");
 
-		expect(requestMock).toHaveBeenCalledWith("POST", "/orgs", { name: "Acme", slug: "acme" });
-		expect(requestMock).toHaveBeenCalledWith("GET", "/orgs/org_1");
+		expect(requestMock).toHaveBeenCalledWith("POST", "/orgs", { name: "Acme", slug: "acme" }, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/orgs/org_1", undefined, undefined, undefined);
 		expect(requestMock).toHaveBeenCalledWith("GET", "/orgs", undefined, { limit: "10", cursor: "c1" });
-		expect(requestMock).toHaveBeenCalledWith("PATCH", "/orgs/org_1", { id: "org_1", name: "Acme 2" });
-		expect(requestMock).toHaveBeenCalledWith("POST", "/orgs/org_1/rotate-key", { id: "org_1" });
-		expect(requestMock).toHaveBeenCalledWith("DELETE", "/orgs/org_1");
+		expect(requestMock).toHaveBeenCalledWith("PATCH", "/orgs/org_1", { id: "org_1", name: "Acme 2" }, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("POST", "/orgs/org_1/rotate-key", { id: "org_1" }, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("DELETE", "/orgs/org_1", undefined, undefined, undefined);
 	});
 
 	test("agents resource uses expected methods/paths", async () => {
@@ -51,17 +51,17 @@ describe("resource methods", () => {
 		await resource.rotateKey("agent_1");
 		await resource.delete("agent_1");
 
-		expect(requestMock).toHaveBeenCalledWith("POST", "/agents", { orgId: "org_1", name: "A", slug: "a1" });
-		expect(requestMock).toHaveBeenCalledWith("GET", "/agents/agent_1");
+		expect(requestMock).toHaveBeenCalledWith("POST", "/agents", { orgId: "org_1", name: "A", slug: "a1" }, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/agents/agent_1", undefined, undefined, undefined);
 		expect(requestMock).toHaveBeenCalledWith("GET", "/agents", undefined, {
 			orgId: "org_1",
 			status: "ACTIVE",
 			query: "agent",
 			limit: "5",
 		});
-		expect(requestMock).toHaveBeenCalledWith("PATCH", "/agents/agent_1", { id: "agent_1", name: "B" });
-		expect(requestMock).toHaveBeenCalledWith("POST", "/agents/agent_1/rotate-key", { id: "agent_1" });
-		expect(requestMock).toHaveBeenCalledWith("DELETE", "/agents/agent_1");
+		expect(requestMock).toHaveBeenCalledWith("PATCH", "/agents/agent_1", { id: "agent_1", name: "B" }, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("POST", "/agents/agent_1/rotate-key", { id: "agent_1" }, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("DELETE", "/agents/agent_1", undefined, undefined, undefined);
 	});
 
 	test("messages resource uses expected methods/paths", async () => {
@@ -85,13 +85,13 @@ describe("resource methods", () => {
 			to: ["a@x.com"],
 			subject: "S",
 			body: "B",
-		});
-		expect(requestMock).toHaveBeenCalledWith("POST", "/messages/sms", {
+		}, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("POST", "/phone/send-sms", {
 			agentId: "agent_1",
 			to: "+15550001",
 			body: "Hi",
-		});
-		expect(requestMock).toHaveBeenCalledWith("GET", "/messages/msg_1");
+		}, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/messages/msg_1", undefined, undefined, undefined);
 		expect(requestMock).toHaveBeenCalledWith("GET", "/messages", undefined, {
 			"dateRange.from": "2024-01-01T00:00:00.000Z",
 		});
@@ -99,14 +99,14 @@ describe("resource methods", () => {
 			query: "hello",
 			filters: { status: "SENT" },
 			pagination: undefined,
-		});
+		}, undefined, undefined);
 		expect(requestMock).toHaveBeenCalledWith("POST", "/messages/msg_1/attachments", {
 			messageId: "msg_1",
 			filename: "a.txt",
 			mimeType: "text/plain",
 			sizeBytes: 1,
-		});
-		expect(requestMock).toHaveBeenCalledWith("GET", "/attachments/att_1/download");
+		}, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/attachments/att_1/download", undefined, undefined, undefined);
 	});
 
 	test("emails resource uses expected methods/paths", async () => {
@@ -130,8 +130,8 @@ describe("resource methods", () => {
 			filename: "b.txt",
 			mimeType: "text/plain",
 			sizeBytes: 2,
-		});
-		expect(requestMock).toHaveBeenCalledWith("GET", "/attachments/att_1/download");
+		}, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/attachments/att_1/download", undefined, undefined, undefined);
 	});
 
 	test("domains resource uses expected methods/paths", async () => {
@@ -146,13 +146,13 @@ describe("resource methods", () => {
 		await resource.deliverability("dom_1");
 		await resource.delete("dom_1");
 
-		expect(requestMock).toHaveBeenCalledWith("POST", "/domains", { domain: "example.com" });
-		expect(requestMock).toHaveBeenCalledWith("GET", "/domains/dom_1");
-		expect(requestMock).toHaveBeenCalledWith("GET", "/domains");
-		expect(requestMock).toHaveBeenCalledWith("POST", "/domains/dom_1/verify", { id: "dom_1", domainId: "dom_1" });
-		expect(requestMock).toHaveBeenCalledWith("GET", "/domains/dom_1/dns-records");
-		expect(requestMock).toHaveBeenCalledWith("GET", "/domains/dom_1/deliverability");
-		expect(requestMock).toHaveBeenCalledWith("DELETE", "/domains/dom_1");
+		expect(requestMock).toHaveBeenCalledWith("POST", "/domains", { domain: "example.com" }, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/domains/dom_1", undefined, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/domains", undefined, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("POST", "/domains/dom_1/verify", { id: "dom_1", domainId: "dom_1" }, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/domains/dom_1/dns-records", undefined, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/domains/dom_1/deliverability", undefined, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("DELETE", "/domains/dom_1", undefined, undefined, undefined);
 	});
 
 	test("phones resource uses expected methods/paths", async () => {
@@ -160,16 +160,12 @@ describe("resource methods", () => {
 		const resource = new PhonesResource(client);
 
 		await resource.provision({ agentId: "agent_1" });
-		await resource.get("phone_1");
 		await resource.list({ agentId: "agent_1" });
-		await resource.updateConfig("phone_1", { isPrimary: true });
-		await resource.release("phone_1");
+		await resource.release({ agentId: "agent_1", phoneNumber: "+15550001" });
 
-		expect(requestMock).toHaveBeenCalledWith("POST", "/phone/provision", { agentId: "agent_1" });
-		expect(requestMock).toHaveBeenCalledWith("GET", "/phones/phone_1");
-		expect(requestMock).toHaveBeenCalledWith("GET", "/phone/numbers", undefined, { agentId: "agent_1" });
-		expect(requestMock).toHaveBeenCalledWith("PATCH", "/phones/phone_1", { isPrimary: true });
-		expect(requestMock).toHaveBeenCalledWith("DELETE", "/phones/phone_1");
+		expect(requestMock).toHaveBeenCalledWith("POST", "/phone/provision", { agentId: "agent_1" }, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/phone/numbers", undefined, { agentId: "agent_1" }, undefined);
+		expect(requestMock).toHaveBeenCalledWith("POST", "/phone/release", { agentId: "agent_1", phoneNumber: "+15550001" }, undefined, undefined);
 	});
 
 	test("webhooks resource uses expected methods/paths", async () => {
@@ -187,17 +183,17 @@ describe("resource methods", () => {
 		expect(requestMock).toHaveBeenCalledWith("POST", "/webhooks", {
 			url: "https://x.dev/hook",
 			events: ["message.sent"],
-		});
-		expect(requestMock).toHaveBeenCalledWith("GET", "/webhooks/wh_1");
+		}, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/webhooks/wh_1", undefined, undefined, undefined);
 		expect(requestMock).toHaveBeenCalledWith("GET", "/webhooks", undefined, { limit: "2" });
-		expect(requestMock).toHaveBeenCalledWith("PUT", "/webhooks/wh_1", { id: "wh_1", active: false });
-		expect(requestMock).toHaveBeenCalledWith("POST", "/webhooks/wh_1/test", { id: "wh_1", event: "message.failed" });
+		expect(requestMock).toHaveBeenCalledWith("PUT", "/webhooks/wh_1", { id: "wh_1", active: false }, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("POST", "/webhooks/wh_1/test", { id: "wh_1", event: "message.failed" }, undefined, undefined);
 		expect(requestMock).toHaveBeenCalledWith("GET", "/webhooks/wh_1/deliveries", undefined, {
 			webhookId: "wh_1",
 			cursor: "c1",
 			limit: "5",
 		});
-		expect(requestMock).toHaveBeenCalledWith("DELETE", "/webhooks/wh_1");
+		expect(requestMock).toHaveBeenCalledWith("DELETE", "/webhooks/wh_1", undefined, undefined, undefined);
 	});
 
 	test("security resource uses expected methods/paths", async () => {
@@ -211,12 +207,13 @@ describe("resource methods", () => {
 			orgId: "org_1",
 			channel: "EMAIL",
 			body: "hello",
-		});
+		}, undefined, undefined);
 		expect(requestMock).toHaveBeenCalledWith(
 			"GET",
 			"/v1/orgs/org_1/security/events",
 			undefined,
 			{ orgId: "org_1", type: "BLOCKED", limit: "10" },
+			undefined,
 		);
 	});
 
@@ -225,19 +222,19 @@ describe("resource methods", () => {
 		const resource = new VoicesResource(client);
 
 		await resource.list();
-		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/catalog", undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/catalog", undefined, undefined, undefined);
 
 		await resource.list({ tier: "premium" });
 		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/catalog", undefined, {
 			tier: "premium",
-		});
+		}, undefined);
 
 		await resource.list({ tier: "basic", gender: "female", language: "en-US" });
 		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/catalog", undefined, {
 			tier: "basic",
 			gender: "female",
 			language: "en-US",
-		});
+		}, undefined);
 	});
 
 	test("calls resource uses expected methods/paths", async () => {
@@ -245,24 +242,24 @@ describe("resource methods", () => {
 		const resource = new CallsResource(client);
 
 		await resource.list();
-		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/calls", undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/calls", undefined, undefined, undefined);
 
 		await resource.list({ agentId: "agent_1", limit: 10 });
 		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/calls", undefined, {
 			agentId: "agent_1",
 			limit: "10",
-		});
+		}, undefined);
 
 		await resource.get("call_1");
-		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/calls/call_1");
+		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/calls/call_1", undefined, undefined, undefined);
 
 		await resource.create({ to: "+15551234567", tier: "basic" });
 		expect(requestMock).toHaveBeenCalledWith("POST", "/voice/calls", {
 			to: "+15551234567",
 			tier: "basic",
-		});
+		}, undefined, undefined);
 
 		await resource.getTranscript("call_1");
-		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/calls/call_1/transcript");
+		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/calls/call_1/transcript", undefined, undefined, undefined);
 	});
 });
