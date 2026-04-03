@@ -4,7 +4,8 @@ import type { AnimaClientOptions, ApiErrorEnvelope, RequestOptions } from "./typ
 const DEFAULT_BASE_URL = "https://api.useanima.sh";
 const DEFAULT_TIMEOUT = 30_000;
 const DEFAULT_MAX_RETRIES = 3;
-const RETRY_DELAYS_MS = [1_000, 2_000, 4_000] as const;
+const BASE_RETRY_DELAY_MS = 500;
+const MAX_RETRY_DELAY_MS = 30_000;
 
 export interface RequestClient {
 	request<T>(
@@ -73,7 +74,8 @@ export class AnimaClient implements RequestClient {
 
 				const shouldRetry = this.shouldRetry(response.status) && attempt < maxRetries;
 				if (shouldRetry) {
-					const delayMs = RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)] ?? 4_000;
+					const retryAfter = this.parseRetryAfter(response);
+					const delayMs = retryAfter ?? this.jitteredDelay(attempt);
 					await this.wait(delayMs);
 					continue;
 				}
@@ -91,8 +93,7 @@ export class AnimaClient implements RequestClient {
 
 				const shouldRetry = attempt < maxRetries;
 				if (shouldRetry) {
-					const delayMs = RETRY_DELAYS_MS[Math.min(attempt, RETRY_DELAYS_MS.length - 1)] ?? 4_000;
-					await this.wait(delayMs);
+					await this.wait(this.jitteredDelay(attempt));
 					continue;
 				}
 
@@ -132,6 +133,19 @@ export class AnimaClient implements RequestClient {
 		}
 
 		return url.toString();
+	}
+
+	private jitteredDelay(attempt: number): number {
+		const exponential = BASE_RETRY_DELAY_MS * 2 ** attempt;
+		const jittered = Math.random() * exponential;
+		return Math.min(jittered, MAX_RETRY_DELAY_MS);
+	}
+
+	private parseRetryAfter(response: Response): number | undefined {
+		const header = response.headers.get("retry-after");
+		if (!header) return undefined;
+		const seconds = Number(header);
+		return Number.isFinite(seconds) ? seconds * 1000 : undefined;
 	}
 
 	private isMutating(method: string): boolean {
