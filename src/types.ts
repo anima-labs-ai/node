@@ -1380,3 +1380,86 @@ export interface QuarantineOutput {
 	quarantinedAt: string | null;
 	reason: string | null;
 }
+
+// ── Voice & Calls ──
+
+export type VoiceTier = "basic" | "premium";
+export type VoiceGender = "male" | "female" | "neutral";
+export type VoiceProvider = "telnyx" | "elevenlabs" | "aws-polly";
+export type CallDirection = "INBOUND" | "OUTBOUND";
+
+export interface Voice {
+	id: string;
+	name: string;
+	provider: VoiceProvider;
+	tier: VoiceTier;
+	gender?: VoiceGender;
+	language: string;
+	accent?: string;
+	style?: string;
+	ageRange?: string;
+	description?: string;
+	previewUrl?: string;
+}
+
+export interface ListVoicesParams {
+	tier?: VoiceTier;
+	gender?: VoiceGender;
+	language?: string;
+}
+
+export interface Call {
+	id: string;
+	agentId: string;
+	phoneIdentityId: string;
+	direction: CallDirection;
+	tier: VoiceTier;
+	state: string;
+	from: string;
+	to: string;
+	startedAt: string;
+	answeredAt: string | null;
+	endedAt: string | null;
+	endReason: string | null;
+	durationSeconds: number | null;
+	createdAt: string;
+}
+
+export interface ListCallsParams {
+	agentId?: string;
+	direction?: CallDirection;
+	state?: string;
+	limit?: number;
+	offset?: number;
+}
+
+export interface CreateCallInput {
+	to: string;
+	agentId?: string;
+	tier?: VoiceTier;
+	greeting?: string;
+	fromNumber?: string;
+}
+
+export interface CreateCallOutput {
+	callId: string;
+	state: string;
+	from: string;
+	to: string;
+	tier: string;
+	direction: "OUTBOUND";
+}
+
+export interface TranscriptSegment {
+	speaker: string;
+	text: string;
+	startTime: number;
+	endTime: number;
+	confidence: number;
+	isFinal: boolean;
+}
+
+export interface CallTranscript {
+	callId: string;
+	segments: TranscriptSegment[];
+}

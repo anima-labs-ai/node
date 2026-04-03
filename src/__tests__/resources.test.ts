@@ -9,6 +9,8 @@ import { OrganizationsResource } from "../resources/organizations";
 import { PhonesResource } from "../resources/phones";
 import { SecurityResource } from "../resources/security";
 import { WebhooksResource } from "../resources/webhooks";
+import { VoicesResource } from "../resources/voices";
+import { CallsResource } from "../resources/calls";
 
 function createMockClient(): { client: RequestClient; requestMock: ReturnType<typeof mock> } {
 	const requestMock = mock(async () => ({ ok: true }));
@@ -216,5 +218,51 @@ describe("resource methods", () => {
 			undefined,
 			{ orgId: "org_1", type: "BLOCKED", limit: "10" },
 		);
+	});
+
+	test("voices resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new VoicesResource(client);
+
+		await resource.list();
+		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/catalog", undefined, undefined);
+
+		await resource.list({ tier: "premium" });
+		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/catalog", undefined, {
+			tier: "premium",
+		});
+
+		await resource.list({ tier: "basic", gender: "female", language: "en-US" });
+		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/catalog", undefined, {
+			tier: "basic",
+			gender: "female",
+			language: "en-US",
+		});
+	});
+
+	test("calls resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new CallsResource(client);
+
+		await resource.list();
+		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/calls", undefined, undefined);
+
+		await resource.list({ agentId: "agent_1", limit: 10 });
+		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/calls", undefined, {
+			agentId: "agent_1",
+			limit: "10",
+		});
+
+		await resource.get("call_1");
+		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/calls/call_1");
+
+		await resource.create({ to: "+15551234567", tier: "basic" });
+		expect(requestMock).toHaveBeenCalledWith("POST", "/voice/calls", {
+			to: "+15551234567",
+			tier: "basic",
+		});
+
+		await resource.getTranscript("call_1");
+		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/calls/call_1/transcript");
 	});
 });

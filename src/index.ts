@@ -19,6 +19,8 @@ import { A2AResource } from "./resources/a2a";
 import { AuditResource } from "./resources/audit";
 import { ComplianceResource } from "./resources/compliance";
 import { AnomalyResource } from "./resources/anomaly";
+import { VoicesResource } from "./resources/voices";
+import { CallsResource } from "./resources/calls";
 import type { AnimaClientOptions } from "./types";
 import { constructWebhookEvent, verifyWebhookSignature } from "./webhooks";
 
@@ -47,6 +49,8 @@ export class Anima {
 	public readonly audit: AuditResource;
 	public readonly compliance: ComplianceResource;
 	public readonly anomaly: AnomalyResource;
+	public readonly voices: VoicesResource;
+	public readonly calls: CallsResource;
 
 	public static readonly webhooks = {
 		verify: verifyWebhookSignature,
@@ -78,6 +82,8 @@ export class Anima {
 		this.audit = new AuditResource(this.client);
 		this.compliance = new ComplianceResource(this.client);
 		this.anomaly = new AnomalyResource(this.client);
+		this.voices = new VoicesResource(this.client);
+		this.calls = new CallsResource(this.client);
 	}
 }
 
