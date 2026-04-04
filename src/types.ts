@@ -75,7 +75,7 @@ export interface DateRange {
 
 export type Tier = "FREE" | "DEVELOPER" | "GROWTH" | "SCALE" | "ENTERPRISE";
 export type AgentStatus = "ACTIVE" | "SUSPENDED" | "DELETED";
-export type PhoneProvider = "TELNYX" | "TWILIO";
+export type PhoneProvider = "TELNYX";
 export type TenDlcStatus = "PENDING" | "REGISTERED" | "REJECTED" | "NOT_REQUIRED";
 
 export interface CreateOrganizationInput {
