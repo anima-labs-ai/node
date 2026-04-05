@@ -1,15 +1,21 @@
 import type { RequestClient } from "../client";
 import type {
 	CreateVaultCredentialInput,
+	CreateVaultTokenInput,
 	DeprovisionVaultInput,
 	GeneratePasswordInput,
 	ListVaultCredentialsParams,
 	ProvisionVaultInput,
 	RequestOptions,
+	RevokeShareInput,
+	RevokeVaultTokensInput,
 	SearchVaultParams,
+	ShareCredentialInput,
 	VaultCredential,
 	VaultIdentityOutput,
+	VaultShare,
 	VaultStatusOutput,
+	VaultTokenOutput,
 	VaultTotpOutput,
 	UpdateVaultCredentialInput,
 } from "../types";
@@ -75,6 +81,54 @@ export class VaultResource {
 
 	public sync(agentId: string, options?: RequestOptions): Promise<{ success: true }> {
 		return this.client.request<{ success: true }>("POST", "/vault/sync", { agentId }, undefined, options);
+	}
+
+	// -----------------------------------------------------------------------
+	// Sharing
+	// -----------------------------------------------------------------------
+
+	public shareCredential(input: ShareCredentialInput, options?: RequestOptions): Promise<VaultShare> {
+		return this.client.request<VaultShare>("POST", "/vault/share", input, undefined, options);
+	}
+
+	public listShares(
+		agentId: string,
+		direction: "granted" | "received",
+		options?: RequestOptions,
+	): Promise<{ items: VaultShare[] }> {
+		return this.client.request<{ items: VaultShare[] }>(
+			"GET",
+			"/vault/shares",
+			undefined,
+			{ agentId, direction },
+			options,
+		);
+	}
+
+	public async revokeShare(input: RevokeShareInput, options?: RequestOptions): Promise<void> {
+		await this.client.request<void>("POST", "/vault/share/revoke", input, undefined, options);
+	}
+
+	// -----------------------------------------------------------------------
+	// Ephemeral tokens
+	// -----------------------------------------------------------------------
+
+	public createToken(input: CreateVaultTokenInput, options?: RequestOptions): Promise<VaultTokenOutput> {
+		return this.client.request<VaultTokenOutput>("POST", "/vault/token", input, undefined, options);
+	}
+
+	public exchangeToken(token: string, options?: RequestOptions): Promise<VaultCredential> {
+		return this.client.request<VaultCredential>("POST", "/vault/token/exchange", { token }, undefined, options);
+	}
+
+	public revokeTokens(input: RevokeVaultTokensInput, options?: RequestOptions): Promise<{ success: boolean; revoked: number }> {
+		return this.client.request<{ success: boolean; revoked: number }>(
+			"POST",
+			"/vault/token/revoke",
+			input,
+			undefined,
+			options,
+		);
 	}
 
 	private toListQuery(params?: ListVaultCredentialsParams): Record<string, string> | undefined {

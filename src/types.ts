@@ -514,6 +514,60 @@ export interface VaultStatusOutput {
 	status: string;
 }
 
+// ---------------------------------------------------------------------------
+// Vault — Sharing
+// ---------------------------------------------------------------------------
+
+export type SharePermission = "READ" | "USE" | "MANAGE";
+
+export interface ShareCredentialInput {
+	agentId: string;
+	credentialId: string;
+	targetAgentId: string;
+	permission: SharePermission;
+	expiresInSeconds?: number;
+}
+
+export interface VaultShare {
+	id: string;
+	credentialId: string;
+	sourceAgentId: string;
+	targetAgentId: string;
+	permission: SharePermission;
+	expiresAt: string | null;
+	createdAt: string;
+}
+
+export interface RevokeShareInput {
+	shareId: string;
+	agentId: string;
+}
+
+// ---------------------------------------------------------------------------
+// Vault — Ephemeral Tokens
+// ---------------------------------------------------------------------------
+
+export type TokenScope = "autofill" | "proxy" | "export";
+
+export interface CreateVaultTokenInput {
+	agentId: string;
+	credentialId: string;
+	scope: TokenScope;
+	ttlSeconds?: number;
+}
+
+export interface VaultTokenOutput {
+	token: string;
+	credentialId: string;
+	scope: TokenScope;
+	expiresAt: string;
+}
+
+export interface RevokeVaultTokensInput {
+	agentId: string;
+	credentialId: string;
+}
+
 export type AddressType = "BILLING" | "SHIPPING" | "MAILING" | "REGISTERED";
 
 export interface CreateAddressInput {
@@ -1510,4 +1564,41 @@ export interface TranscriptSegment {
 export interface CallTranscript {
 	callId: string;
 	segments: TranscriptSegment[];
+}
+
+// ---------------------------------------------------------------------------
+// Voice WebSocket types
+// ---------------------------------------------------------------------------
+
+export type VoiceMessageType =
+	| "call.create"
+	| "call.accept"
+	| "call.reject"
+	| "call.speak"
+	| "call.speak.cancel"
+	| "call.hangup"
+	| "call.hold"
+	| "call.resume"
+	| "call.dtmf"
+	| "ping"
+	| "call.started"
+	| "call.ringing"
+	| "call.answered"
+	| "call.transcription"
+	| "call.speak.ended"
+	| "call.interrupted"
+	| "call.ended"
+	| "call.error"
+	| "call.security.alert"
+	| "connected"
+	| "pong";
+
+export interface VoiceMessage {
+	type: VoiceMessageType;
+	data?: Record<string, unknown>;
+	timestamp?: string;
+}
+
+export interface VoiceConnectionOptions {
+	agentId?: string;
 }
