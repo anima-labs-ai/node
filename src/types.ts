@@ -475,6 +475,7 @@ export interface CreateVaultCredentialInput {
 }
 
 export interface UpdateVaultCredentialInput {
+	agentId: string;
 	name?: string;
 	notes?: string;
 	login?: VaultLoginData;
@@ -496,6 +497,7 @@ export interface SearchVaultParams {
 }
 
 export interface GeneratePasswordInput {
+	agentId: string;
 	length?: number;
 	uppercase?: boolean;
 	lowercase?: boolean;

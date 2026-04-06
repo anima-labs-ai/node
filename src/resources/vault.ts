@@ -41,8 +41,8 @@ export class VaultResource {
 		);
 	}
 
-	public getCredential(id: string, options?: RequestOptions): Promise<VaultCredential> {
-		return this.client.request<VaultCredential>("GET", `/vault/credentials/${id}`, undefined, undefined, options);
+	public getCredential(id: string, agentId: string, options?: RequestOptions): Promise<VaultCredential> {
+		return this.client.request<VaultCredential>("GET", `/vault/credentials/${id}`, undefined, { agentId }, options);
 	}
 
 	public createCredential(input: CreateVaultCredentialInput, options?: RequestOptions): Promise<VaultCredential> {
@@ -50,11 +50,12 @@ export class VaultResource {
 	}
 
 	public updateCredential(id: string, input: UpdateVaultCredentialInput, options?: RequestOptions): Promise<VaultCredential> {
-		return this.client.request<VaultCredential>("PUT", `/vault/credentials/${id}`, input, undefined, options);
+		const { agentId, ...body } = input;
+		return this.client.request<VaultCredential>("PUT", `/vault/credentials/${id}`, { agentId, ...body }, undefined, options);
 	}
 
-	public async deleteCredential(id: string, options?: RequestOptions): Promise<void> {
-		await this.client.request<void>("DELETE", `/vault/credentials/${id}`, undefined, undefined, options);
+	public async deleteCredential(id: string, agentId: string, options?: RequestOptions): Promise<void> {
+		await this.client.request<void>("DELETE", `/vault/credentials/${id}`, { agentId }, undefined, options);
 	}
 
 	public search(params: SearchVaultParams, options?: RequestOptions): Promise<{ items: VaultCredential[] }> {
@@ -71,8 +72,8 @@ export class VaultResource {
 		return this.client.request<{ password: string }>("POST", "/vault/generate-password", input, undefined, options);
 	}
 
-	public getTotp(id: string, options?: RequestOptions): Promise<VaultTotpOutput> {
-		return this.client.request<VaultTotpOutput>("GET", `/vault/totp/${id}`, undefined, undefined, options);
+	public getTotp(id: string, agentId: string, options?: RequestOptions): Promise<VaultTotpOutput> {
+		return this.client.request<VaultTotpOutput>("GET", `/vault/totp/${id}`, undefined, { agentId }, options);
 	}
 
 	public status(agentId: string, options?: RequestOptions): Promise<VaultStatusOutput> {
