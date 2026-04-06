@@ -69,7 +69,7 @@ export class VaultResource {
 	}
 
 	public generatePassword(input?: GeneratePasswordInput, options?: RequestOptions): Promise<{ password: string }> {
-		return this.client.request<{ password: string }>("POST", "/vault/generate-password", input, undefined, options);
+		return this.client.request<{ password: string }>("POST", "/vault/generate-password", input ?? {}, undefined, options);
 	}
 
 	public getTotp(id: string, agentId?: string, options?: RequestOptions): Promise<VaultTotpOutput> {
@@ -81,7 +81,7 @@ export class VaultResource {
 	}
 
 	public sync(agentId?: string, options?: RequestOptions): Promise<{ success: true }> {
-		return this.client.request<{ success: true }>("POST", "/vault/sync", agentId ? { agentId } : undefined, undefined, options);
+		return this.client.request<{ success: true }>("POST", "/vault/sync", agentId ? { agentId } : {}, undefined, options);
 	}
 
 	// -----------------------------------------------------------------------
