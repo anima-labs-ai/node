@@ -463,7 +463,7 @@ export interface VaultCredential {
 }
 
 export interface CreateVaultCredentialInput {
-	agentId: string;
+	agentId?: string;
 	type: CredentialType;
 	name: string;
 	notes?: string;
@@ -475,7 +475,7 @@ export interface CreateVaultCredentialInput {
 }
 
 export interface UpdateVaultCredentialInput {
-	agentId: string;
+	agentId?: string;
 	name?: string;
 	notes?: string;
 	login?: VaultLoginData;
@@ -486,18 +486,18 @@ export interface UpdateVaultCredentialInput {
 }
 
 export interface ListVaultCredentialsParams {
-	agentId: string;
+	agentId?: string;
 	type?: CredentialType;
 }
 
 export interface SearchVaultParams {
-	agentId: string;
+	agentId?: string;
 	search: string;
 	type?: CredentialType;
 }
 
 export interface GeneratePasswordInput {
-	agentId: string;
+	agentId?: string;
 	length?: number;
 	uppercase?: boolean;
 	lowercase?: boolean;
@@ -542,7 +542,7 @@ export interface VaultShare {
 
 export interface RevokeShareInput {
 	shareId: string;
-	agentId: string;
+	agentId?: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -552,7 +552,7 @@ export interface RevokeShareInput {
 export type TokenScope = "autofill" | "proxy" | "export";
 
 export interface CreateVaultTokenInput {
-	agentId: string;
+	agentId?: string;
 	credentialId: string;
 	scope: TokenScope;
 	ttlSeconds?: number;
@@ -566,7 +566,7 @@ export interface VaultTokenOutput {
 }
 
 export interface RevokeVaultTokensInput {
-	agentId: string;
+	agentId?: string;
 	credentialId: string;
 }
 
