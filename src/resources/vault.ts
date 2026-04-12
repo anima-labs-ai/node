@@ -155,4 +155,107 @@ export class VaultResource {
 
 		return query;
 	}
+
+	/** OAuth sub-resource for managing service connections */
+	public get oauth(): VaultOAuthResource {
+		return new VaultOAuthResource(this.client);
+	}
+}
+
+// ── OAuth Sub-Resource ────────────────────────────────────────────────────
+
+export interface OAuthApp {
+	id: string;
+	slug: string;
+	name: string;
+	description: string | null;
+	iconUrl: string | null;
+	authMethod: string;
+	defaultScopes: string[];
+	requiresPkce: boolean;
+	category: string | null;
+	isManaged: boolean;
+	isActive: boolean;
+}
+
+export interface ConnectedAccount {
+	id: string;
+	agentId: string;
+	userId: string | null;
+	appDefinitionId: string;
+	appSlug: string;
+	appName: string;
+	appIconUrl: string | null;
+	customAppId: string | null;
+	grantedScopes: string[];
+	accountLabel: string | null;
+	accountEmail: string | null;
+	status: string;
+	statusMessage: string | null;
+	tokenExpiresAt: string | null;
+	lastRefreshedAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ConnectLinkResult {
+	linkUrl: string;
+	token: string;
+	expiresAt: string;
+}
+
+export interface ConnectLinkStatus {
+	status: "PENDING" | "COMPLETED" | "EXPIRED" | "FAILED";
+	connectedAccountId: string | null;
+}
+
+export interface CreateConnectLinkInput {
+	agentId?: string;
+	appSlug: string;
+	userId?: string;
+	scopes?: string[];
+	callbackUrl?: string;
+	customAppId?: string;
+}
+
+export interface ListConnectedAccountsInput {
+	agentId?: string;
+	userId?: string;
+	appSlug?: string;
+	status?: string;
+}
+
+class VaultOAuthResource {
+	constructor(private readonly client: RequestClient) {}
+
+	public listApps(category?: string, options?: RequestOptions): Promise<{ items: OAuthApp[] }> {
+		const query = category ? { category } : undefined;
+		return this.client.request<{ items: OAuthApp[] }>("GET", "/vault/oauth/apps", undefined, query, options);
+	}
+
+	public getApp(slug: string, options?: RequestOptions): Promise<OAuthApp> {
+		return this.client.request<OAuthApp>("GET", `/vault/oauth/apps/${slug}`, undefined, undefined, options);
+	}
+
+	public createLink(input: CreateConnectLinkInput, options?: RequestOptions): Promise<ConnectLinkResult> {
+		return this.client.request<ConnectLinkResult>("POST", "/vault/oauth/link", input, undefined, options);
+	}
+
+	public getLinkStatus(token: string, options?: RequestOptions): Promise<ConnectLinkStatus> {
+		return this.client.request<ConnectLinkStatus>("GET", `/vault/oauth/link/${token}`, undefined, undefined, options);
+	}
+
+	public listAccounts(input?: ListConnectedAccountsInput, options?: RequestOptions): Promise<{ items: ConnectedAccount[] }> {
+		const query: Record<string, string> = {};
+		if (input?.agentId) query.agentId = input.agentId;
+		if (input?.userId) query.userId = input.userId;
+		if (input?.appSlug) query.appSlug = input.appSlug;
+		if (input?.status) query.status = input.status;
+		return this.client.request<{ items: ConnectedAccount[] }>("GET", "/vault/oauth/accounts", undefined, Object.keys(query).length > 0 ? query : undefined, options);
+	}
+
+	public disconnect(accountId: string, agentId?: string, options?: RequestOptions): Promise<{ success: boolean }> {
+		const query = agentId ? { agentId } : undefined;
+		return this.client.request<{ success: boolean }>("DELETE", `/vault/oauth/accounts/${accountId}`, undefined, query, options);
+	}
 }
