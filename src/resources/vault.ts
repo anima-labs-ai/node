@@ -50,12 +50,25 @@ export class VaultResource {
 	}
 
 	public updateCredential(id: string, input: UpdateVaultCredentialInput, options?: RequestOptions): Promise<VaultCredential> {
-		const { agentId, ...body } = input;
-		return this.client.request<VaultCredential>("PUT", `/vault/credentials/${id}`, { agentId, ...body }, undefined, options);
+		// agentId lives in the body for write ops (POST/PUT) alongside the
+		// rest of the update payload. Read ops (GET/DELETE) put it in the
+		// query string. This asymmetry matches the server contract and the
+		// HTTP conventions baked into the OpenAPI routes.
+		return this.client.request<VaultCredential>("PUT", `/vault/credentials/${id}`, input, undefined, options);
 	}
 
 	public async deleteCredential(id: string, agentId?: string, options?: RequestOptions): Promise<void> {
-		await this.client.request<void>("DELETE", `/vault/credentials/${id}`, agentId ? { agentId } : undefined, undefined, options);
+		// agentId goes in the query string — DELETE requests carry no body
+		// per RFC 7231. Previously this was passed in the body slot, which the
+		// server silently ignored and then 400-ed "missing agentId". Align
+		// with getCredential/getTotp/status, which all put it in the query.
+		await this.client.request<void>(
+			"DELETE",
+			`/vault/credentials/${id}`,
+			undefined,
+			agentId ? { agentId } : undefined,
+			options,
+		);
 	}
 
 	public search(params: SearchVaultParams, options?: RequestOptions): Promise<{ items: VaultCredential[] }> {
