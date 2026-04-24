@@ -1,0 +1,172 @@
+import WebSocket from "ws";
+
+import type { VoiceConnectionOptions, VoiceMessage, VoiceMessageType } from "./types";
+
+type VoiceEventCallback = (message: VoiceMessage) => void;
+type ErrorCallback = (error: Error) => void;
+type VoidCallback = () => void;
+
+type VoiceListenerMap = {
+	message: VoiceEventCallback;
+	error: ErrorCallback;
+	connected: VoidCallback;
+	disconnected: VoidCallback;
+};
+
+const PING_INTERVAL_MS = 30_000;
+
+/**
+ * Bidirectional WebSocket connection for real-time voice call control.
+ *
+ * Send commands (call.create, call.speak, call.hangup) and receive events
+ * (call.started, call.transcription, call.ended) over a persistent connection.
+ */
+export class VoiceConnection {
+	private ws: WebSocket | null = null;
+	private readonly wsUrl: string;
+	private pingInterval: ReturnType<typeof setInterval> | null = null;
+	private closed = false;
+
+	private listeners: {
+		message: VoiceEventCallback[];
+		error: ErrorCallback[];
+		connected: VoidCallback[];
+		disconnected: VoidCallback[];
+	} = {
+		message: [],
+		error: [],
+		connected: [],
+		disconnected: [],
+	};
+
+	/** @internal — use CallsResource.connect() instead. */
+	public constructor(wsUrl: string, _options?: VoiceConnectionOptions) {
+		this.wsUrl = wsUrl;
+		this.connect();
+	}
+
+	public on<K extends keyof VoiceListenerMap>(event: K, callback: VoiceListenerMap[K]): this {
+		(this.listeners[event] as VoiceListenerMap[K][]).push(callback);
+		return this;
+	}
+
+	public off<K extends keyof VoiceListenerMap>(event: K, callback: VoiceListenerMap[K]): this {
+		const list = this.listeners[event] as VoiceListenerMap[K][];
+		const idx = list.indexOf(callback);
+		if (idx !== -1) list.splice(idx, 1);
+		return this;
+	}
+
+	/** Send a voice command to the server. */
+	public send(type: VoiceMessageType, data?: Record<string, unknown>): void {
+		if (this.ws?.readyState === WebSocket.OPEN) {
+			// Server expects flat messages with type + fields at the top level
+			const msg: Record<string, unknown> = { type, ...data };
+			if (!msg.requestId) {
+				msg.requestId = `req-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+			}
+			this.ws.send(JSON.stringify(msg));
+		}
+	}
+
+	/** Create an outbound call. */
+	public createCall(to: string, options?: { tier?: string; greeting?: string; fromNumber?: string }): void {
+		this.send("call.create", { to, ...options });
+	}
+
+	/** Send text for TTS playback. */
+	public speak(callId: string, text: string): void {
+		this.send("call.speak", { callId, text });
+	}
+
+	/** Cancel in-progress speech. */
+	public cancelSpeak(callId: string): void {
+		this.send("call.speak.cancel", { callId });
+	}
+
+	/** Hang up a call. */
+	public hangup(callId: string): void {
+		this.send("call.hangup", { callId });
+	}
+
+	/** Accept an inbound call. */
+	public accept(callId: string): void {
+		this.send("call.accept", { callId });
+	}
+
+	/** Reject an inbound call. */
+	public reject(callId: string): void {
+		this.send("call.reject", { callId });
+	}
+
+	/** Place a call on hold. */
+	public hold(callId: string): void {
+		this.send("call.hold", { callId });
+	}
+
+	/** Resume a held call. */
+	public resume(callId: string): void {
+		this.send("call.resume", { callId });
+	}
+
+	/** Send DTMF tone(s). */
+	public dtmf(callId: string, digits: string): void {
+		this.send("call.dtmf", { callId, digits });
+	}
+
+	/** Close the connection. */
+	public close(): void {
+		this.closed = true;
+		this.stopPing();
+		if (this.ws) {
+			this.ws.removeAllListeners();
+			if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+				this.ws.close(1000, "Client closed");
+			}
+			this.ws = null;
+		}
+	}
+
+	private connect(): void {
+		if (this.closed) return;
+
+		this.ws = new WebSocket(this.wsUrl);
+
+		this.ws.on("open", () => {
+			this.startPing();
+			for (const cb of this.listeners.connected) cb();
+		});
+
+		this.ws.on("message", (raw: WebSocket.Data) => {
+			try {
+				const msg = JSON.parse(raw.toString()) as VoiceMessage;
+				for (const cb of this.listeners.message) cb(msg);
+			} catch {
+				// Ignore malformed messages
+			}
+		});
+
+		this.ws.on("close", () => {
+			this.stopPing();
+			for (const cb of this.listeners.disconnected) cb();
+		});
+
+		this.ws.on("error", (err: Error) => {
+			for (const cb of this.listeners.error) cb(err);
+		});
+	}
+
+	private startPing(): void {
+		this.stopPing();
+		this.pingInterval = setInterval(() => {
+			this.send("ping");
+		}, PING_INTERVAL_MS);
+	}
+
+	private stopPing(): void {
+		if (this.pingInterval) {
+			clearInterval(this.pingInterval);
+			this.pingInterval = null;
+		}
+	}
+}

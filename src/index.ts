@@ -84,7 +84,7 @@ export class Anima {
 		this.compliance = new ComplianceResource(this.client);
 		this.anomaly = new AnomalyResource(this.client);
 		this.voices = new VoicesResource(this.client);
-		this.calls = new CallsResource(this.client);
+		this.calls = new CallsResource(this.client, apiKey, baseUrl);
 	}
 
 	public on(event: "request", listener: (data: RequestEvent) => void): this;
@@ -116,4 +116,5 @@ export {
 } from "./errors";
 export { AnimaEventStream, EventsResource } from "./resources/events";
 export { webhookMiddleware } from "./middleware";
+export { VoiceConnection } from "./voice-connection";
 export * from "./types";
