@@ -523,11 +523,15 @@ export interface VaultStatusOutput {
 export type SharePermission = "READ" | "USE" | "MANAGE";
 
 export interface ShareCredentialInput {
-	agentId: string;
+	/** ID of the agent that OWNS the credential being shared. */
+	sourceAgentId: string;
 	credentialId: string;
 	targetAgentId: string;
 	permission: SharePermission;
+	/** Relative TTL — mutually exclusive with `expiresAt`. */
 	expiresInSeconds?: number;
+	/** Absolute ISO-8601 timestamp — wins over `expiresInSeconds` if both set. */
+	expiresAt?: string;
 }
 
 export interface VaultShare {

@@ -6,10 +6,26 @@ import type {
 	CreateCallOutput,
 	ListCallsParams,
 	RequestOptions,
+	VoiceConnectionOptions,
 } from "../types";
+import { VoiceConnection } from "../voice-connection";
 
 export class CallsResource {
-	public constructor(private readonly client: RequestClient) {}
+	private readonly apiKey: string;
+	private readonly wsBaseUrl: string;
+
+	public constructor(client: RequestClient, apiKey: string, baseUrl: string);
+	public constructor(client: RequestClient);
+	public constructor(
+		private readonly client: RequestClient,
+		apiKey?: string,
+		baseUrl?: string,
+	) {
+		this.apiKey = apiKey ?? "";
+		this.wsBaseUrl = (baseUrl ?? "")
+			.replace(/^https:\/\//, "wss://")
+			.replace(/^http:\/\//, "ws://");
+	}
 
 	public list(params?: ListCallsParams, options?: RequestOptions): Promise<{ calls: Call[]; total: number }> {
 		return this.client.request<{ calls: Call[]; total: number }>(
@@ -31,6 +47,27 @@ export class CallsResource {
 
 	public getTranscript(callId: string, options?: RequestOptions): Promise<CallTranscript> {
 		return this.client.request<CallTranscript>("GET", `/voice/calls/${callId}/transcript`, undefined, undefined, options);
+	}
+
+	/**
+	 * Open a bidirectional WebSocket connection for real-time voice call control.
+	 *
+	 * @example
+	 * ```ts
+	 * const conn = anima.calls.connect();
+	 * conn.on("message", (msg) => {
+	 *   if (msg.type === "call.transcription") {
+	 *     console.log(msg.data?.text);
+	 *   }
+	 * });
+	 * conn.createCall("+15551234567");
+	 * ```
+	 */
+	public connect(options?: VoiceConnectionOptions): VoiceConnection {
+		const params = new URLSearchParams({ token: this.apiKey });
+		if (options?.agentId) params.set("agentId", options.agentId);
+		const wsUrl = `${this.wsBaseUrl}/ws/voice?${params.toString()}`;
+		return new VoiceConnection(wsUrl, options);
 	}
 
 	private toQuery(params?: ListCallsParams): Record<string, string> | undefined {

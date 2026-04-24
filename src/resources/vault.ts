@@ -50,12 +50,25 @@ export class VaultResource {
 	}
 
 	public updateCredential(id: string, input: UpdateVaultCredentialInput, options?: RequestOptions): Promise<VaultCredential> {
-		const { agentId, ...body } = input;
-		return this.client.request<VaultCredential>("PUT", `/vault/credentials/${id}`, { agentId, ...body }, undefined, options);
+		// agentId lives in the body for write ops (POST/PUT) alongside the
+		// rest of the update payload. Read ops (GET/DELETE) put it in the
+		// query string. This asymmetry matches the server contract and the
+		// HTTP conventions baked into the OpenAPI routes.
+		return this.client.request<VaultCredential>("PUT", `/vault/credentials/${id}`, input, undefined, options);
 	}
 
 	public async deleteCredential(id: string, agentId?: string, options?: RequestOptions): Promise<void> {
-		await this.client.request<void>("DELETE", `/vault/credentials/${id}`, agentId ? { agentId } : undefined, undefined, options);
+		// agentId goes in the query string — DELETE requests carry no body
+		// per RFC 7231. Previously this was passed in the body slot, which the
+		// server silently ignored and then 400-ed "missing agentId". Align
+		// with getCredential/getTotp/status, which all put it in the query.
+		await this.client.request<void>(
+			"DELETE",
+			`/vault/credentials/${id}`,
+			undefined,
+			agentId ? { agentId } : undefined,
+			options,
+		);
 	}
 
 	public search(params: SearchVaultParams, options?: RequestOptions): Promise<{ items: VaultCredential[] }> {
@@ -155,107 +168,10 @@ export class VaultResource {
 
 		return query;
 	}
-
-	/** OAuth sub-resource for managing service connections */
-	public get oauth(): VaultOAuthResource {
-		return new VaultOAuthResource(this.client);
-	}
 }
 
-// ── OAuth Sub-Resource ────────────────────────────────────────────────────
-
-export interface OAuthApp {
-	id: string;
-	slug: string;
-	name: string;
-	description: string | null;
-	iconUrl: string | null;
-	authMethod: string;
-	defaultScopes: string[];
-	requiresPkce: boolean;
-	category: string | null;
-	isManaged: boolean;
-	isActive: boolean;
-}
-
-export interface ConnectedAccount {
-	id: string;
-	agentId: string;
-	userId: string | null;
-	appDefinitionId: string;
-	appSlug: string;
-	appName: string;
-	appIconUrl: string | null;
-	customAppId: string | null;
-	grantedScopes: string[];
-	accountLabel: string | null;
-	accountEmail: string | null;
-	status: string;
-	statusMessage: string | null;
-	tokenExpiresAt: string | null;
-	lastRefreshedAt: string | null;
-	createdAt: string;
-	updatedAt: string;
-}
-
-export interface ConnectLinkResult {
-	linkUrl: string;
-	token: string;
-	expiresAt: string;
-}
-
-export interface ConnectLinkStatus {
-	status: "PENDING" | "COMPLETED" | "EXPIRED" | "FAILED";
-	connectedAccountId: string | null;
-}
-
-export interface CreateConnectLinkInput {
-	agentId?: string;
-	appSlug: string;
-	userId?: string;
-	scopes?: string[];
-	callbackUrl?: string;
-	customAppId?: string;
-}
-
-export interface ListConnectedAccountsInput {
-	agentId?: string;
-	userId?: string;
-	appSlug?: string;
-	status?: string;
-}
-
-class VaultOAuthResource {
-	constructor(private readonly client: RequestClient) {}
-
-	public listApps(category?: string, options?: RequestOptions): Promise<{ items: OAuthApp[] }> {
-		const query = category ? { category } : undefined;
-		return this.client.request<{ items: OAuthApp[] }>("GET", "/vault/oauth/apps", undefined, query, options);
-	}
-
-	public getApp(slug: string, options?: RequestOptions): Promise<OAuthApp> {
-		return this.client.request<OAuthApp>("GET", `/vault/oauth/apps/${slug}`, undefined, undefined, options);
-	}
-
-	public createLink(input: CreateConnectLinkInput, options?: RequestOptions): Promise<ConnectLinkResult> {
-		return this.client.request<ConnectLinkResult>("POST", "/vault/oauth/link", input, undefined, options);
-	}
-
-	public getLinkStatus(token: string, options?: RequestOptions): Promise<ConnectLinkStatus> {
-		return this.client.request<ConnectLinkStatus>("GET", `/vault/oauth/link/${token}`, undefined, undefined, options);
-	}
-
-	public listAccounts(input?: ListConnectedAccountsInput, options?: RequestOptions): Promise<{ items: ConnectedAccount[] }> {
-		const query: Record<string, string> = {};
-		if (input?.agentId) query.agentId = input.agentId;
-		if (input?.userId) query.userId = input.userId;
-		if (input?.appSlug) query.appSlug = input.appSlug;
-		if (input?.status) query.status = input.status;
-		return this.client.request<{ items: ConnectedAccount[] }>("GET", "/vault/oauth/accounts", undefined, Object.keys(query).length > 0 ? query : undefined, options);
-	}
-
-	public disconnect(accountId: string, agentId?: string, options?: RequestOptions): Promise<{ success: boolean }> {
-		const query = agentId ? { agentId } : undefined;
-		return this.client.request<{ success: boolean }>("DELETE", `/vault/oauth/accounts/${accountId}`, undefined, query, options);
-	}
-}
+// The vault OAuth sub-resource (manage third-party app connections via
+// Connect Links) was removed from the SDK on 2026-04-25 — the
+// credential-broker model handles third-party auth through vault
+// credentials + ephemeral vtk_ tokens instead of a separate OAuth
+// catalogue. The HTTP endpoints remain for the console and CLI.

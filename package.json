@@ -1,6 +1,6 @@
 {
 	"name": "@anima-labs/sdk",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "Official TypeScript/Node.js SDK for the Anima API",
 	"license": "MIT",
 	"author": "Anima Labs <support@useanima.sh>",
@@ -25,14 +25,19 @@
 		"typescript",
 		"agent-infrastructure"
 	],
-	"main": "./dist/index.cjs",
-	"module": "./dist/index.js",
+	"main": "./dist/index.js",
+	"module": "./dist/index.mjs",
 	"types": "./dist/index.d.ts",
 	"exports": {
 		".": {
-			"types": "./dist/index.d.ts",
-			"import": "./dist/index.js",
-			"require": "./dist/index.cjs"
+			"import": {
+				"types": "./dist/index.d.mts",
+				"default": "./dist/index.mjs"
+			},
+			"require": {
+				"types": "./dist/index.d.ts",
+				"default": "./dist/index.js"
+			}
 		}
 	},
 	"files": [
@@ -46,7 +51,7 @@
 		"test": "bun test src/__tests__/client.test.ts && bun test src/__tests__/webhooks.test.ts && bun test src/__tests__/resources.test.ts"
 	},
 	"engines": {
-		"node": ">=18"
+		"node": ">=22"
 	},
 	"dependencies": {
 		"ws": "^8.18.0"
