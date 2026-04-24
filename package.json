@@ -1,6 +1,6 @@
 {
 	"name": "@anima-labs/sdk",
-	"version": "0.2.0",
+	"version": "0.3.0",
 	"description": "Official TypeScript/Node.js SDK for the Anima API",
 	"license": "MIT",
 	"author": "Anima Labs <support@useanima.sh>",
@@ -46,7 +46,7 @@
 		"test": "bun test src/__tests__/client.test.ts && bun test src/__tests__/webhooks.test.ts && bun test src/__tests__/resources.test.ts"
 	},
 	"engines": {
-		"node": ">=18"
+		"node": ">=22"
 	},
 	"dependencies": {
 		"ws": "^8.18.0"
