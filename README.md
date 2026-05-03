@@ -490,6 +490,10 @@ import type {
 
 Full API documentation is available at [docs.useanima.sh](https://docs.useanima.sh).
 
+## Community
+
+Join the [Anima Discord](https://discord.gg/pY3GK59Z9E) to ask questions in `#node-sdk`, share what you're building in `#showcase`, and stay up to date with releases in `#announcements`.
+
 ## License
 
 MIT — see [LICENSE](LICENSE) for details.
