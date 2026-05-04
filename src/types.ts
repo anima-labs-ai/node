@@ -768,7 +768,7 @@ export interface Card {
 	id: string;
 	agentId: string;
 	orgId: string;
-	stripeCardId: string;
+	providerCardId: string;
 	cardType: "VIRTUAL" | "PHYSICAL";
 	status: "ACTIVE" | "FROZEN" | "CANCELED";
 	last4: string;
