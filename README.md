@@ -207,46 +207,6 @@ await anima.phones.updateConfig("phone_id", { isPrimary: true });
 await anima.phones.release("phone_id");
 ```
 
-### Cards
-
-```ts
-// Create a virtual card for an agent
-const card = await anima.cards.create({
-  agentId: "agent_id",
-  label: "SaaS Subscriptions",
-  spendLimitMonthly: 50000, // $500.00 in cents
-});
-
-// List and manage cards
-const cards = await anima.cards.list({ agentId: "agent_id", status: "ACTIVE" });
-const card = await anima.cards.get("card_id");
-await anima.cards.update("card_id", { spendLimitDaily: 10000 });
-await anima.cards.freeze("card_id");
-await anima.cards.unfreeze("card_id");
-await anima.cards.delete("card_id");
-
-// Spending policies
-const policy = await anima.cards.createPolicy("card_id", {
-  name: "Block gambling",
-  action: "ALWAYS_DECLINE",
-  blockedCategories: ["gambling"],
-});
-const policies = await anima.cards.listPolicies("card_id");
-await anima.cards.updatePolicy("policy_id", { action: "REQUIRE_APPROVAL" });
-await anima.cards.deletePolicy("policy_id");
-
-// Transactions
-const txns = await anima.cards.listTransactions({ cardId: "card_id", limit: 50 });
-const txn = await anima.cards.getTransaction("txn_id");
-
-// Kill switch — freeze all cards for an agent
-await anima.cards.killSwitch({ agentId: "agent_id", active: true });
-
-// Approvals
-const approvals = await anima.cards.listApprovals({ status: "PENDING" });
-await anima.cards.decideApproval("approval_id", "APPROVED");
-```
-
 ### Webhooks
 
 ```ts

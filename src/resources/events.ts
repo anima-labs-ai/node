@@ -302,7 +302,7 @@ export class EventsResource {
 	 * stream.on("event", (event) => console.log(event));
 	 * stream.on("connected", () => console.log("Connected"));
 	 * // Later:
-	 * stream.subscribe(["card.*"]);
+	 * stream.subscribe(["sms.*"]);
 	 * stream.close();
 	 * ```
 	 */

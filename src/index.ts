@@ -1,7 +1,6 @@
 import { AnimaClient } from "./client";
 import { AddressesResource } from "./resources/addresses";
 import { AgentsResource } from "./resources/agents";
-import { CardsResource } from "./resources/cards";
 import { DomainsResource } from "./resources/domains";
 import { EmailsResource } from "./resources/emails";
 import { EventsResource } from "./resources/events";
@@ -35,7 +34,6 @@ export class Anima {
 	public readonly messages: MessagesResource;
 	public readonly emails: EmailsResource;
 	public readonly domains: DomainsResource;
-	public readonly cards: CardsResource;
 	public readonly identity: IdentityResource;
 	public readonly phones: PhonesResource;
 	public readonly pods: PodsResource;
@@ -69,7 +67,6 @@ export class Anima {
 		this.messages = new MessagesResource(this.client);
 		this.emails = new EmailsResource(this.client);
 		this.domains = new DomainsResource(this.client);
-		this.cards = new CardsResource(this.client);
 		this.identity = new IdentityResource(this.client);
 		this.phones = new PhonesResource(this.client);
 		this.pods = new PodsResource(this.client);

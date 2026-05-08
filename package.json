@@ -21,7 +21,6 @@
 		"identity",
 		"webhooks",
 		"vault",
-		"virtual-cards",
 		"typescript",
 		"agent-infrastructure"
 	],

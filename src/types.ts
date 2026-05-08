@@ -764,160 +764,12 @@ export interface WebhookVerificationOptions {
 	now?: number;
 }
 
-export interface Card {
-	id: string;
-	agentId: string;
-	orgId: string;
-	providerCardId: string;
-	cardType: "VIRTUAL" | "PHYSICAL";
-	status: "ACTIVE" | "FROZEN" | "CANCELED";
-	last4: string;
-	brand: string;
-	expMonth: number;
-	expYear: number;
-	currency: string;
-	label: string | null;
-	spendLimitDaily: number | null;
-	spendLimitMonthly: number | null;
-	spendLimitPerAuth: number | null;
-	spentToday: number;
-	spentThisMonth: number;
-	killSwitchActive: boolean;
-	createdAt: string;
-	updatedAt: string;
-}
-
-export interface CreateCardParams {
-	agentId: string;
-	label?: string;
-	currency?: string;
-	spendLimitDaily?: number;
-	spendLimitMonthly?: number;
-	spendLimitPerAuth?: number;
-	metadata?: Record<string, string>;
-}
-
-export interface UpdateCardParams {
-	label?: string;
-	status?: "ACTIVE" | "FROZEN" | "CANCELED";
-	spendLimitDaily?: number | null;
-	spendLimitMonthly?: number | null;
-	spendLimitPerAuth?: number | null;
-}
-
-export interface ListCardsParams {
-	agentId?: string;
-	status?: "ACTIVE" | "FROZEN" | "CANCELED";
-	cursor?: string;
-	limit?: number;
-}
-
-export interface CardList {
-	items: Card[];
-	cursor?: string;
-}
-
-export interface SpendingPolicy {
-	id: string;
-	cardId: string;
-	orgId: string;
-	name: string;
-	priority: number;
-	action: "AUTO_APPROVE" | "REQUIRE_APPROVAL" | "ALWAYS_DECLINE";
-	maxAmountCents: number | null;
-	minAmountCents: number | null;
-	allowedCategories: string[];
-	blockedCategories: string[];
-	allowedMerchants: string[];
-	blockedMerchants: string[];
-	allowedCountries: string[];
-	blockedCountries: string[];
-	createdAt: string;
-}
-
-export interface CreatePolicyParams {
-	name: string;
-	priority?: number;
-	action: "AUTO_APPROVE" | "REQUIRE_APPROVAL" | "ALWAYS_DECLINE";
-	maxAmountCents?: number;
-	minAmountCents?: number;
-	allowedCategories?: string[];
-	blockedCategories?: string[];
-	allowedMerchants?: string[];
-	blockedMerchants?: string[];
-	allowedCountries?: string[];
-	blockedCountries?: string[];
-}
-
-export interface UpdatePolicyParams extends Partial<CreatePolicyParams> {}
-
-export interface CardTransaction {
-	id: string;
-	cardId: string;
-	status: "PENDING" | "APPROVED" | "DECLINED" | "REVERSED" | "EXPIRED";
-	decision: string | null;
-	amountCents: number;
-	currency: string;
-	merchantName: string | null;
-	merchantCategory: string | null;
-	merchantCategoryCode: string | null;
-	createdAt: string;
-}
-
-export interface ListTransactionsParams {
-	cardId?: string;
-	agentId?: string;
-	status?: string;
-	cursor?: string;
-	limit?: number;
-}
-
-export interface TransactionList {
-	items: CardTransaction[];
-	cursor?: string;
-}
-
-export interface KillSwitchParams {
-	agentId?: string;
-	cardId?: string;
-	active: boolean;
-}
-
-export interface KillSwitchResult {
-	affected: number;
-	active: boolean;
-}
-
-export interface CardApproval {
-	id: string;
-	orgId: string;
-	cardId: string;
-	amountCents: number;
-	currency: string;
-	merchantName: string | null;
-	status: "PENDING" | "APPROVED" | "DECLINED" | "EXPIRED";
-	decidedBy: string | null;
-	expiresAt: string;
-	createdAt: string;
-}
-
-export interface ListApprovalsParams {
-	status?: "PENDING" | "APPROVED" | "DECLINED" | "EXPIRED";
-	cursor?: string;
-	limit?: number;
-}
-
-export interface ApprovalList {
-	items: CardApproval[];
-	cursor?: string;
-}
-
 // ---------------------------------------------------------------------------
 // Real-time Events (WebSocket)
 // ---------------------------------------------------------------------------
 
 export interface EventStreamOptions {
-	/** Channels to subscribe to on connect (e.g. `["email.*", "card.*"]`). */
+	/** Channels to subscribe to on connect (e.g. `["email.*"]`). */
 	channels?: string[];
 }
 
@@ -1382,7 +1234,6 @@ export interface CompleteDsarInput {
 export type AnomalyMetric =
 	| "email_send_rate"
 	| "sms_send_rate"
-	| "card_txn_count"
 	| "vault_access_rate"
 	| "api_call_rate"
 	| "unique_recipients";
