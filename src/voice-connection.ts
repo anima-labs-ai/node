@@ -150,10 +150,15 @@ export class VoiceConnection {
 		}
 	}
 
+	/** @internal — override in tests to inject a mock WebSocket. */
+	protected createWebSocket(url: string): WebSocket {
+		return new WebSocket(url);
+	}
+
 	private connect(): void {
 		if (this.closed) return;
 
-		this.ws = new WebSocket(this.wsUrl);
+		this.ws = this.createWebSocket(this.wsUrl);
 
 		this.ws.on("open", () => {
 			this.startPing();

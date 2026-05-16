@@ -7,7 +7,7 @@
  *   { type: "call.speak.chunk", callId: "call-1", text: "Hello", requestId: "..." }
  */
 
-import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { describe, expect, mock, test } from "bun:test";
 import WebSocket from "ws";
 
 import { VoiceConnection } from "../voice-connection";
@@ -54,69 +54,29 @@ function parsedMessages(ws: MockWs): Array<Record<string, unknown>> {
 }
 
 // ---------------------------------------------------------------------------
-// Test setup
-//
-// VoiceConnection calls `new WebSocket(url)` in its constructor. We intercept
-// the module-level WebSocket constructor by swapping the import.
+// Test setup — see TestVoiceConnection inside the suite for injection details.
 // ---------------------------------------------------------------------------
 
 describe("VoiceConnection.speakStream", () => {
-	let ws: MockWs;
-	let conn: VoiceConnection;
-	let originalWebSocket: typeof WebSocket;
-
-	beforeEach(() => {
-		// Replace the WebSocket constructor so VoiceConnection uses our mock
-		ws = makeMockWs(WebSocket.OPEN);
-		// biome-ignore lint: test mock
-		(globalThis as Record<string, unknown>).WebSocket = function () {
-			return ws;
-		};
-
-		// We need to mock the `ws` module's WebSocket. The simplest approach:
-		// patch the module via bun's module mock, but since VoiceConnection
-		// imports `ws` as a named import at load time, we instead inject via
-		// a subclass that accepts a pre-built WS object. Because we can't easily
-		// hot-swap the `ws` module in bun without mock.module (which requires
-		// top-level await), we use a different approach:
-		// expose the internal `ws` field via a test-only subclass.
-		originalWebSocket = WebSocket;
-	});
-
-	afterEach(() => {
-		// biome-ignore lint: test cleanup
-		(globalThis as Record<string, unknown>).WebSocket = originalWebSocket;
-	});
-
 	// -------------------------------------------------------------------------
-	// Because VoiceConnection.connect() calls `new WebSocket(url)` using the
-	// imported `WebSocket` from 'ws' (not globalThis.WebSocket), we need a
-	// different strategy: subclass VoiceConnection and override `connect`.
+	// VoiceConnection exposes a protected createWebSocket() factory method.
+	// We override it here to return the test mock. The static slot is needed
+	// only to bridge the gap between `new TestVoiceConnection(mockWs)` and the
+	// `createWebSocket()` call that happens inside super() → connect(). Tests
+	// run sequentially so there is no concurrency hazard.
 	// -------------------------------------------------------------------------
 
 	class TestVoiceConnection extends VoiceConnection {
+		private static _mockWs: MockWs | null = null;
+
 		constructor(mockWs: MockWs) {
-			// We pass a dummy URL; connect() is overridden before it runs.
-			// We must call super() which calls connect() — so we override first.
-			// Trick: override on prototype before super() — not possible in TS.
-			// Instead we pass a flag via a private static slot.
-			TestVoiceConnection._pendingMockWs = mockWs;
+			TestVoiceConnection._mockWs = mockWs;
 			super("ws://test-url");
-			TestVoiceConnection._pendingMockWs = null;
+			TestVoiceConnection._mockWs = null;
 		}
 
-		private static _pendingMockWs: MockWs | null = null;
-
-		// biome-ignore lint: override for testing
-		// @ts-expect-error — accessing private method for test injection
-		protected override connect(): void {
-			const mockWs = TestVoiceConnection._pendingMockWs;
-			if (!mockWs) return;
-			// biome-ignore lint: assign private field for testing
-			// @ts-expect-error — assign private field for testing
-			this.ws = mockWs;
-			// Register no-op listeners so the class doesn't throw
-			// (the mock's `on` method is a no-op mock)
+		protected override createWebSocket(_url: string): WebSocket {
+			return TestVoiceConnection._mockWs as unknown as WebSocket;
 		}
 	}
 
