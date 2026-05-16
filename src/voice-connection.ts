@@ -1,6 +1,6 @@
 import WebSocket from "ws";
 
-import type { VoiceConnectionOptions, VoiceMessage, VoiceMessageType } from "./types";
+import type { CallTranscriptionEagerEvent, VoiceConnectionOptions, VoiceMessage, VoiceMessageType } from "./types";
 
 type VoiceEventCallback = (message: VoiceMessage) => void;
 type ErrorCallback = (error: Error) => void;
@@ -11,6 +11,7 @@ type VoiceListenerMap = {
 	error: ErrorCallback;
 	connected: VoidCallback;
 	disconnected: VoidCallback;
+	"transcription.eager": (event: CallTranscriptionEagerEvent) => void;
 };
 
 const PING_INTERVAL_MS = 30_000;
@@ -32,11 +33,13 @@ export class VoiceConnection {
 		error: ErrorCallback[];
 		connected: VoidCallback[];
 		disconnected: VoidCallback[];
+		"transcription.eager": Array<(event: CallTranscriptionEagerEvent) => void>;
 	} = {
 		message: [],
 		error: [],
 		connected: [],
 		disconnected: [],
+		"transcription.eager": [],
 	};
 
 	/** @internal — use CallsResource.connect() instead. */
@@ -169,6 +172,10 @@ export class VoiceConnection {
 			try {
 				const msg = JSON.parse(raw.toString()) as VoiceMessage;
 				for (const cb of this.listeners.message) cb(msg);
+				if (msg.type === "call.transcription.eager") {
+					const eager = msg as unknown as CallTranscriptionEagerEvent;
+					for (const cb of this.listeners["transcription.eager"]) cb(eager);
+				}
 			} catch {
 				// Ignore malformed messages
 			}
