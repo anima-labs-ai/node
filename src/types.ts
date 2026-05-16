@@ -1432,6 +1432,8 @@ export type VoiceMessageType =
 	| "call.accept"
 	| "call.reject"
 	| "call.speak"
+	| "call.speak.chunk"
+	| "call.speak.end"
 	| "call.speak.cancel"
 	| "call.hangup"
 	| "call.hold"

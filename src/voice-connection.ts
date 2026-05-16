@@ -79,6 +79,29 @@ export class VoiceConnection {
 		this.send("call.speak", { callId, text });
 	}
 
+	/**
+	 * Stream text into a live call. Each yielded chunk dispatches a
+	 * call.speak.chunk frame; call.speak.end is sent when the iterable
+	 * completes. Use this when piping LLM tokens directly so TTS can
+	 * begin synthesizing on the first phrase instead of waiting for the
+	 * full reply.
+	 *
+	 * Empty chunks (empty string) are skipped (no message sent) but the
+	 * trailing call.speak.end still fires.
+	 *
+	 * Silently no-ops (does not throw) when the WebSocket is not open —
+	 * same behaviour as send(). Caller is responsible for cancelling the
+	 * iterable on barge-in (the server cancels ElevenLabs server-side on
+	 * call.interrupted).
+	 */
+	public async speakStream(callId: string, chunks: AsyncIterable<string>): Promise<void> {
+		for await (const text of chunks) {
+			if (!text) continue;
+			this.send("call.speak.chunk", { callId, text });
+		}
+		this.send("call.speak.end", { callId });
+	}
+
 	/** Cancel in-progress speech. */
 	public cancelSpeak(callId: string): void {
 		this.send("call.speak.cancel", { callId });
