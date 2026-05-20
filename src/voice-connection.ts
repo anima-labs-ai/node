@@ -1,6 +1,6 @@
 import WebSocket from "ws";
 
-import type { VoiceConnectionOptions, VoiceMessage, VoiceMessageType } from "./types";
+import type { CallTranscriptionEagerEvent, VoiceConnectionOptions, VoiceMessage, VoiceMessageType } from "./types";
 
 type VoiceEventCallback = (message: VoiceMessage) => void;
 type ErrorCallback = (error: Error) => void;
@@ -11,6 +11,7 @@ type VoiceListenerMap = {
 	error: ErrorCallback;
 	connected: VoidCallback;
 	disconnected: VoidCallback;
+	"transcription.eager": (event: CallTranscriptionEagerEvent) => void;
 };
 
 const PING_INTERVAL_MS = 30_000;
@@ -32,11 +33,13 @@ export class VoiceConnection {
 		error: ErrorCallback[];
 		connected: VoidCallback[];
 		disconnected: VoidCallback[];
+		"transcription.eager": Array<(event: CallTranscriptionEagerEvent) => void>;
 	} = {
 		message: [],
 		error: [],
 		connected: [],
 		disconnected: [],
+		"transcription.eager": [],
 	};
 
 	/** @internal — use CallsResource.connect() instead. */
@@ -77,6 +80,29 @@ export class VoiceConnection {
 	/** Send text for TTS playback. */
 	public speak(callId: string, text: string): void {
 		this.send("call.speak", { callId, text });
+	}
+
+	/**
+	 * Stream text into a live call. Each yielded chunk dispatches a
+	 * call.speak.chunk frame; call.speak.end is sent when the iterable
+	 * completes. Use this when piping LLM tokens directly so TTS can
+	 * begin synthesizing on the first phrase instead of waiting for the
+	 * full reply.
+	 *
+	 * Empty chunks (empty string) are skipped (no message sent) but the
+	 * trailing call.speak.end still fires.
+	 *
+	 * Silently no-ops (does not throw) when the WebSocket is not open —
+	 * same behaviour as send(). Caller is responsible for cancelling the
+	 * iterable on barge-in (the server cancels ElevenLabs server-side on
+	 * call.interrupted).
+	 */
+	public async speakStream(callId: string, chunks: AsyncIterable<string>): Promise<void> {
+		for await (const text of chunks) {
+			if (!text) continue;
+			this.send("call.speak.chunk", { callId, text });
+		}
+		this.send("call.speak.end", { callId });
 	}
 
 	/** Cancel in-progress speech. */
@@ -127,10 +153,15 @@ export class VoiceConnection {
 		}
 	}
 
+	/** @internal — override in tests to inject a mock WebSocket. */
+	protected createWebSocket(url: string): WebSocket {
+		return new WebSocket(url);
+	}
+
 	private connect(): void {
 		if (this.closed) return;
 
-		this.ws = new WebSocket(this.wsUrl);
+		this.ws = this.createWebSocket(this.wsUrl);
 
 		this.ws.on("open", () => {
 			this.startPing();
@@ -141,6 +172,10 @@ export class VoiceConnection {
 			try {
 				const msg = JSON.parse(raw.toString()) as VoiceMessage;
 				for (const cb of this.listeners.message) cb(msg);
+				if (msg.type === "call.transcription.eager") {
+					const eager = msg as unknown as CallTranscriptionEagerEvent;
+					for (const cb of this.listeners["transcription.eager"]) cb(eager);
+				}
 			} catch {
 				// Ignore malformed messages
 			}

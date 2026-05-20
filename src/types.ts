@@ -1432,6 +1432,8 @@ export type VoiceMessageType =
 	| "call.accept"
 	| "call.reject"
 	| "call.speak"
+	| "call.speak.chunk"
+	| "call.speak.end"
 	| "call.speak.cancel"
 	| "call.hangup"
 	| "call.hold"
@@ -1442,6 +1444,7 @@ export type VoiceMessageType =
 	| "call.ringing"
 	| "call.answered"
 	| "call.transcription"
+	| "call.transcription.eager"
 	| "call.speak.ended"
 	| "call.interrupted"
 	| "call.ended"
@@ -1449,6 +1452,15 @@ export type VoiceMessageType =
 	| "call.security.alert"
 	| "connected"
 	| "pong";
+
+export interface CallTranscriptionEagerEvent {
+	type: "call.transcription.eager";
+	callId: string;
+	turnId?: string;
+	text: string;
+	confidence: number;
+	timestamp: number;
+}
 
 export interface VoiceMessage {
 	type: VoiceMessageType;
