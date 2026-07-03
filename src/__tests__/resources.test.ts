@@ -196,6 +196,78 @@ describe("resource methods", () => {
 		expect(requestMock).toHaveBeenCalledWith("DELETE", "/webhooks/wh_1", undefined, undefined, undefined);
 	});
 
+	test("webhooks resource forwards advanced settings (auth + throttle) on create", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new WebhooksResource(client);
+
+		await resource.create({
+			url: "https://x.dev/hook",
+			events: ["message.sent"],
+			authConfig: { type: "bearer", token: "tok_secret" },
+			rateLimitPerMinute: 60,
+			maxAttempts: 5,
+		});
+
+		expect(requestMock).toHaveBeenCalledWith("POST", "/webhooks", {
+			url: "https://x.dev/hook",
+			events: ["message.sent"],
+			authConfig: { type: "bearer", token: "tok_secret" },
+			rateLimitPerMinute: 60,
+			maxAttempts: 5,
+		}, undefined, undefined);
+	});
+
+	test("webhooks resource supports every authConfig variant", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new WebhooksResource(client);
+
+		await resource.create({ url: "https://x.dev/a", events: ["message.sent"], authConfig: { type: "none" } });
+		await resource.create({
+			url: "https://x.dev/b",
+			events: ["message.sent"],
+			authConfig: { type: "basic", username: "u", password: "p" },
+		});
+		await resource.create({
+			url: "https://x.dev/c",
+			events: ["message.sent"],
+			authConfig: { type: "custom_header", headerName: "X-Api-Key", value: "v" },
+		});
+
+		expect(requestMock).toHaveBeenCalledWith("POST", "/webhooks", {
+			url: "https://x.dev/a",
+			events: ["message.sent"],
+			authConfig: { type: "none" },
+		}, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("POST", "/webhooks", {
+			url: "https://x.dev/b",
+			events: ["message.sent"],
+			authConfig: { type: "basic", username: "u", password: "p" },
+		}, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith("POST", "/webhooks", {
+			url: "https://x.dev/c",
+			events: ["message.sent"],
+			authConfig: { type: "custom_header", headerName: "X-Api-Key", value: "v" },
+		}, undefined, undefined);
+	});
+
+	test("webhooks resource forwards nullable throttle resets on update", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new WebhooksResource(client);
+
+		await resource.update("wh_1", {
+			authConfig: { type: "none" },
+			rateLimitPerMinute: null,
+			maxAttempts: null,
+		});
+
+		expect(requestMock).toHaveBeenCalledWith("PUT", "/webhooks/wh_1", {
+			id: "wh_1",
+			authConfig: { type: "none" },
+			rateLimitPerMinute: null,
+			maxAttempts: null,
+		}, undefined, undefined);
+	});
+
 	test("security resource uses expected methods/paths", async () => {
 		const { client, requestMock } = createMockClient();
 		const resource = new SecurityResource(client);

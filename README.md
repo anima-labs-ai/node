@@ -215,6 +215,11 @@ const webhook = await anima.webhooks.create({
   url: "https://your-app.com/webhooks/anima",
   events: ["message.received", "message.sent", "agent.created"],
   description: "Production webhook",
+  // Optional: auth Anima presents to your endpoint, in addition to the
+  // always-on X-Anima-Signature HMAC. Also: bearer / basic / custom_header.
+  authConfig: { type: "bearer", token: "your-endpoint-secret" },
+  rateLimitPerMinute: 60, // omit for unlimited
+  maxAttempts: 5, // 1..10, default 3
 });
 
 // List, get, update, delete

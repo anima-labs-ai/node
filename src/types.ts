@@ -638,11 +638,25 @@ export type WebhookEventType =
 	| "phone.provisioned"
 	| "phone.released";
 
+/**
+ * Authentication the platform presents to your endpoint on each delivery, in
+ * addition to the always-on `X-Anima-Signature` HMAC header. Secrets set here
+ * (`token`, `password`, `value`) are write-only and are never returned on reads.
+ */
+export type WebhookAuthConfig =
+	| { type: "none" }
+	| { type: "bearer"; token: string }
+	| { type: "basic"; username: string; password: string }
+	| { type: "custom_header"; headerName: string; value: string };
+
 export interface CreateWebhookInput {
 	url: string;
 	events: WebhookEventType[];
 	description?: string;
 	active?: boolean;
+	authConfig?: WebhookAuthConfig;
+	rateLimitPerMinute?: number;
+	maxAttempts?: number;
 }
 
 export interface UpdateWebhookInput {
@@ -650,7 +664,12 @@ export interface UpdateWebhookInput {
 	events?: WebhookEventType[];
 	description?: string;
 	active?: boolean;
+	authConfig?: WebhookAuthConfig;
+	rateLimitPerMinute?: number | null;
+	maxAttempts?: number | null;
 }
+
+export type WebhookAuthType = "NONE" | "BEARER" | "BASIC" | "CUSTOM_HEADER";
 
 export interface WebhookOutput {
 	id: string;
@@ -659,6 +678,10 @@ export interface WebhookOutput {
 	events: WebhookEventType[];
 	active: boolean;
 	description: string | null;
+	authType: WebhookAuthType;
+	authHeaderName: string | null;
+	rateLimitPerMinute: number | null;
+	maxAttempts: number | null;
 	consecutiveFailures: number;
 	disabledReason: string | null;
 	disabledAt: string | null;
