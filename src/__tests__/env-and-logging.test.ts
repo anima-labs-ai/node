@@ -64,7 +64,7 @@ describe("Environment variable fallback", () => {
 		await client.request("GET", "/agents");
 
 		const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
-		expect(url).toContain("https://custom.example.com/agents");
+		expect(url).toContain("https://custom.example.com/v1/agents");
 	});
 
 	test("explicit baseUrl takes precedence over ANIMA_API_URL", async () => {
@@ -78,7 +78,7 @@ describe("Environment variable fallback", () => {
 		await client.request("GET", "/agents");
 
 		const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
-		expect(url).toContain("https://explicit.example.com/agents");
+		expect(url).toContain("https://explicit.example.com/v1/agents");
 	});
 
 	test("defaults to production URL when no env var or option", async () => {
@@ -91,7 +91,7 @@ describe("Environment variable fallback", () => {
 		await client.request("GET", "/agents");
 
 		const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
-		expect(url).toContain("https://api.useanima.sh/agents");
+		expect(url).toContain("https://api.useanima.sh/v1/agents");
 	});
 });
 

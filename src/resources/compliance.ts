@@ -24,7 +24,7 @@ export class ComplianceResource {
 	public listControls(orgId: string, params?: ComplianceControlListParams, options?: RequestOptions): Promise<PaginatedResponse<ComplianceControlOutput>> {
 		return this.client.request<PaginatedResponse<ComplianceControlOutput>>(
 			"GET",
-			`/v1/orgs/${orgId}/compliance/controls`,
+			`/orgs/${orgId}/compliance/controls`,
 			undefined,
 			this.toControlQuery(params),
 			options,
@@ -34,7 +34,7 @@ export class ComplianceResource {
 	public getControl(orgId: string, controlId: string, options?: RequestOptions): Promise<ComplianceControlOutput> {
 		return this.client.request<ComplianceControlOutput>(
 			"GET",
-			`/v1/orgs/${orgId}/compliance/controls/${controlId}`,
+			`/orgs/${orgId}/compliance/controls/${controlId}`,
 			undefined,
 			undefined,
 			options,
@@ -44,7 +44,7 @@ export class ComplianceResource {
 	public updateControlStatus(orgId: string, controlId: string, input: ComplianceControlStatusInput, options?: RequestOptions): Promise<ComplianceControlOutput> {
 		return this.client.request<ComplianceControlOutput>(
 			"PATCH",
-			`/v1/orgs/${orgId}/compliance/controls/${controlId}`,
+			`/orgs/${orgId}/compliance/controls/${controlId}`,
 			input,
 			undefined,
 			options,
@@ -54,7 +54,7 @@ export class ComplianceResource {
 	public seedFramework(orgId: string, input: SeedFrameworkInput, options?: RequestOptions): Promise<SeedFrameworkOutput> {
 		return this.client.request<SeedFrameworkOutput>(
 			"POST",
-			`/v1/orgs/${orgId}/compliance/seed`,
+			`/orgs/${orgId}/compliance/seed`,
 			input,
 			undefined,
 			options,
@@ -64,7 +64,7 @@ export class ComplianceResource {
 	public generateReport(orgId: string, input: GenerateReportInput, options?: RequestOptions): Promise<ComplianceReportOutput> {
 		return this.client.request<ComplianceReportOutput>(
 			"POST",
-			`/v1/orgs/${orgId}/compliance/reports`,
+			`/orgs/${orgId}/compliance/reports`,
 			input,
 			undefined,
 			options,
@@ -74,7 +74,7 @@ export class ComplianceResource {
 	public listReports(orgId: string, params?: ComplianceReportListParams, options?: RequestOptions): Promise<PaginatedResponse<ComplianceReportOutput>> {
 		return this.client.request<PaginatedResponse<ComplianceReportOutput>>(
 			"GET",
-			`/v1/orgs/${orgId}/compliance/reports`,
+			`/orgs/${orgId}/compliance/reports`,
 			undefined,
 			this.toReportQuery(params),
 			options,
@@ -84,7 +84,7 @@ export class ComplianceResource {
 	public getReport(orgId: string, reportId: string, options?: RequestOptions): Promise<ComplianceReportOutput> {
 		return this.client.request<ComplianceReportOutput>(
 			"GET",
-			`/v1/orgs/${orgId}/compliance/reports/${reportId}`,
+			`/orgs/${orgId}/compliance/reports/${reportId}`,
 			undefined,
 			undefined,
 			options,
@@ -94,7 +94,7 @@ export class ComplianceResource {
 	public downloadReport(orgId: string, reportId: string, options?: RequestOptions): Promise<ComplianceReportDownloadOutput> {
 		return this.client.request<ComplianceReportDownloadOutput>(
 			"GET",
-			`/v1/orgs/${orgId}/compliance/reports/${reportId}/download`,
+			`/orgs/${orgId}/compliance/reports/${reportId}/download`,
 			undefined,
 			undefined,
 			options,
@@ -104,7 +104,7 @@ export class ComplianceResource {
 	public getDashboard(orgId: string, options?: RequestOptions): Promise<ComplianceDashboardOutput> {
 		return this.client.request<ComplianceDashboardOutput>(
 			"GET",
-			`/v1/orgs/${orgId}/compliance/dashboard`,
+			`/orgs/${orgId}/compliance/dashboard`,
 			undefined,
 			undefined,
 			options,
@@ -114,7 +114,7 @@ export class ComplianceResource {
 	public createDsar(orgId: string, input: CreateDsarInput, options?: RequestOptions): Promise<DsarOutput> {
 		return this.client.request<DsarOutput>(
 			"POST",
-			`/v1/orgs/${orgId}/compliance/dsars`,
+			`/orgs/${orgId}/compliance/dsars`,
 			input,
 			undefined,
 			options,
@@ -124,7 +124,7 @@ export class ComplianceResource {
 	public listDsars(orgId: string, params?: DsarListParams, options?: RequestOptions): Promise<PaginatedResponse<DsarOutput>> {
 		return this.client.request<PaginatedResponse<DsarOutput>>(
 			"GET",
-			`/v1/orgs/${orgId}/compliance/dsars`,
+			`/orgs/${orgId}/compliance/dsars`,
 			undefined,
 			this.toDsarQuery(params),
 			options,
@@ -134,7 +134,7 @@ export class ComplianceResource {
 	public completeDsar(orgId: string, dsarId: string, input?: CompleteDsarInput, options?: RequestOptions): Promise<DsarOutput> {
 		return this.client.request<DsarOutput>(
 			"POST",
-			`/v1/orgs/${orgId}/compliance/dsars/${dsarId}/complete`,
+			`/orgs/${orgId}/compliance/dsars/${dsarId}/complete`,
 			input,
 			undefined,
 			options,
