@@ -19,7 +19,7 @@ export class AnomalyResource {
 	public listAlerts(orgId: string, params?: AnomalyAlertListParams, options?: RequestOptions): Promise<PaginatedResponse<AnomalyAlertOutput>> {
 		return this.client.request<PaginatedResponse<AnomalyAlertOutput>>(
 			"GET",
-			`/v1/orgs/${orgId}/anomaly/alerts`,
+			`/orgs/${orgId}/anomaly/alerts`,
 			undefined,
 			this.toAlertQuery(params),
 			options,
@@ -29,7 +29,7 @@ export class AnomalyResource {
 	public acknowledgeAlert(orgId: string, alertId: string, options?: RequestOptions): Promise<AnomalyAlertOutput> {
 		return this.client.request<AnomalyAlertOutput>(
 			"POST",
-			`/v1/orgs/${orgId}/anomaly/alerts/${alertId}/acknowledge`,
+			`/orgs/${orgId}/anomaly/alerts/${alertId}/acknowledge`,
 			undefined,
 			undefined,
 			options,
@@ -39,7 +39,7 @@ export class AnomalyResource {
 	public resolveAlert(orgId: string, alertId: string, options?: RequestOptions): Promise<AnomalyAlertOutput> {
 		return this.client.request<AnomalyAlertOutput>(
 			"POST",
-			`/v1/orgs/${orgId}/anomaly/alerts/${alertId}/resolve`,
+			`/orgs/${orgId}/anomaly/alerts/${alertId}/resolve`,
 			undefined,
 			undefined,
 			options,
@@ -49,7 +49,7 @@ export class AnomalyResource {
 	public listRules(orgId: string, params?: AnomalyRuleListParams, options?: RequestOptions): Promise<PaginatedResponse<AnomalyRuleOutput>> {
 		return this.client.request<PaginatedResponse<AnomalyRuleOutput>>(
 			"GET",
-			`/v1/orgs/${orgId}/anomaly/rules`,
+			`/orgs/${orgId}/anomaly/rules`,
 			undefined,
 			this.toRuleQuery(params),
 			options,
@@ -59,7 +59,7 @@ export class AnomalyResource {
 	public createRule(orgId: string, input: CreateAnomalyRuleInput, options?: RequestOptions): Promise<AnomalyRuleOutput> {
 		return this.client.request<AnomalyRuleOutput>(
 			"POST",
-			`/v1/orgs/${orgId}/anomaly/rules`,
+			`/orgs/${orgId}/anomaly/rules`,
 			input,
 			undefined,
 			options,
@@ -69,7 +69,7 @@ export class AnomalyResource {
 	public updateRule(orgId: string, ruleId: string, input: UpdateAnomalyRuleInput, options?: RequestOptions): Promise<AnomalyRuleOutput> {
 		return this.client.request<AnomalyRuleOutput>(
 			"PATCH",
-			`/v1/orgs/${orgId}/anomaly/rules/${ruleId}`,
+			`/orgs/${orgId}/anomaly/rules/${ruleId}`,
 			input,
 			undefined,
 			options,
@@ -79,7 +79,7 @@ export class AnomalyResource {
 	public deleteRule(orgId: string, ruleId: string, options?: RequestOptions): Promise<void> {
 		return this.client.request<void>(
 			"DELETE",
-			`/v1/orgs/${orgId}/anomaly/rules/${ruleId}`,
+			`/orgs/${orgId}/anomaly/rules/${ruleId}`,
 			undefined,
 			undefined,
 			options,
@@ -89,7 +89,7 @@ export class AnomalyResource {
 	public getBaseline(orgId: string, agentId: string, options?: RequestOptions): Promise<AgentBaselineOutput> {
 		return this.client.request<AgentBaselineOutput>(
 			"GET",
-			`/v1/orgs/${orgId}/anomaly/baselines/${agentId}`,
+			`/orgs/${orgId}/anomaly/baselines/${agentId}`,
 			undefined,
 			undefined,
 			options,
@@ -99,7 +99,7 @@ export class AnomalyResource {
 	public quarantine(orgId: string, agentId: string, input: QuarantineInput, options?: RequestOptions): Promise<QuarantineOutput> {
 		return this.client.request<QuarantineOutput>(
 			"POST",
-			`/v1/orgs/${orgId}/anomaly/quarantine/${agentId}`,
+			`/orgs/${orgId}/anomaly/quarantine/${agentId}`,
 			input,
 			undefined,
 			options,
@@ -109,7 +109,7 @@ export class AnomalyResource {
 	public releaseQuarantine(orgId: string, agentId: string, options?: RequestOptions): Promise<QuarantineOutput> {
 		return this.client.request<QuarantineOutput>(
 			"POST",
-			`/v1/orgs/${orgId}/anomaly/quarantine/${agentId}/release`,
+			`/orgs/${orgId}/anomaly/quarantine/${agentId}/release`,
 			undefined,
 			undefined,
 			options,

@@ -282,7 +282,7 @@ describe("resource methods", () => {
 		}, undefined, undefined);
 		expect(requestMock).toHaveBeenCalledWith(
 			"GET",
-			"/v1/orgs/org_1/security/events",
+			"/orgs/org_1/security/events",
 			undefined,
 			{ orgId: "org_1", type: "BLOCKED", limit: "10" },
 			undefined,

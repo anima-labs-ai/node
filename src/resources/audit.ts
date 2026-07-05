@@ -14,18 +14,18 @@ export class AuditResource {
 	public list(orgId: string, params?: AuditLogListParams): PageIterator<AuditLogOutput> {
 		return new PageIterator<AuditLogOutput>((cursor) => {
 			const merged = cursor ? { ...params, cursor } : params;
-			return this.client.request("GET", `/v1/orgs/${orgId}/audit/logs`, undefined, this.toQuery(merged));
+			return this.client.request("GET", `/orgs/${orgId}/audit/logs`, undefined, this.toQuery(merged));
 		});
 	}
 
 	public get(orgId: string, logId: string, options?: RequestOptions): Promise<AuditLogOutput> {
-		return this.client.request<AuditLogOutput>("GET", `/v1/orgs/${orgId}/audit/logs/${logId}`, undefined, undefined, options);
+		return this.client.request<AuditLogOutput>("GET", `/orgs/${orgId}/audit/logs/${logId}`, undefined, undefined, options);
 	}
 
 	public export(orgId: string, params?: AuditLogExportParams, options?: RequestOptions): Promise<AuditLogExportOutput> {
 		return this.client.request<AuditLogExportOutput>(
 			"POST",
-			`/v1/orgs/${orgId}/audit/export`,
+			`/orgs/${orgId}/audit/export`,
 			params,
 			undefined,
 			options,

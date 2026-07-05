@@ -18,7 +18,7 @@ export class SecurityResource {
 	public listEvents(params: SecurityEventsListParams, options?: RequestOptions): Promise<PaginatedResponse<SecurityEventOutput>> {
 		return this.client.request<PaginatedResponse<SecurityEventOutput>>(
 			"GET",
-			`/v1/orgs/${params.orgId}/security/events`,
+			`/orgs/${params.orgId}/security/events`,
 			undefined,
 			this.toQuery(params),
 			options,

@@ -3,6 +3,11 @@ import { debug } from "./logger";
 import type { AnimaClientOptions, ApiErrorEnvelope, RawResponse, RequestEvent, RequestOptions, ResponseEvent } from "./types";
 
 const DEFAULT_BASE_URL = "https://api.useanima.sh";
+// The Anima API serves every route under /v1. The version prefix lives in
+// exactly one place — here — so resource methods pass BARE paths (e.g.
+// "/agents"), mirroring the server, which applies the prefix once at mount
+// time and keeps contract paths bare. Resource files must NOT hardcode "/v1".
+const API_VERSION_PREFIX = "/v1";
 const DEFAULT_TIMEOUT = 30_000;
 const DEFAULT_MAX_RETRIES = 3;
 const BASE_RETRY_DELAY_MS = 500;
@@ -34,7 +39,13 @@ export class AnimaClient implements RequestClient {
 			);
 		}
 		this.apiKey = apiKey;
-		this.baseUrl = (options.baseUrl ?? process.env.ANIMA_API_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+		// Normalize to an origin: strip trailing slashes, then a redundant trailing
+		// "/v1" (e.g. a caller who pasted the API banner's ".../v1" base URL). The
+		// SDK owns the version prefix (API_VERSION_PREFIX), so leaving "/v1" here
+		// would double-prefix to "/v1/v1" and 404.
+		this.baseUrl = (options.baseUrl ?? process.env.ANIMA_API_URL ?? DEFAULT_BASE_URL)
+			.replace(/\/+$/, "")
+			.replace(/\/v1$/, "");
 		this.timeout = options.timeout ?? DEFAULT_TIMEOUT;
 		this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
 		debug("Client initialized", { baseUrl: this.baseUrl, timeout: this.timeout, maxRetries: this.maxRetries });
@@ -182,7 +193,7 @@ export class AnimaClient implements RequestClient {
 
 	private buildUrl(path: string, query?: Record<string, string | string[]>): string {
 		const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-		const url = new URL(`${this.baseUrl}${normalizedPath}`);
+		const url = new URL(`${this.baseUrl}${API_VERSION_PREFIX}${normalizedPath}`);
 
 		if (query) {
 			for (const [key, value] of Object.entries(query)) {
