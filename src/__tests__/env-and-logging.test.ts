@@ -93,6 +93,36 @@ describe("Environment variable fallback", () => {
 		const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
 		expect(url).toContain("https://api.useanima.sh/v1/agents");
 	});
+
+	test("a trailing slash on baseUrl does not produce a double slash before /v1", async () => {
+		process.env.ANIMA_API_KEY = "sk_test";
+		fetchMock.mockResolvedValueOnce(
+			new Response(JSON.stringify({ ok: true }), { status: 200 }),
+		);
+
+		const client = new AnimaClient({ baseUrl: "https://trailing.example.com/" });
+		await client.request("GET", "/agents");
+
+		const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+		expect(url).toContain("https://trailing.example.com/v1/agents");
+		expect(url).not.toContain("//v1");
+	});
+
+	test("a baseUrl that already includes /v1 is not double-prefixed", async () => {
+		process.env.ANIMA_API_KEY = "sk_test";
+		fetchMock.mockResolvedValueOnce(
+			new Response(JSON.stringify({ ok: true }), { status: 200 }),
+		);
+
+		// The GET / banner advertises baseUrl "https://api.useanima.sh/v1"; a
+		// developer pasting that must not get "/v1/v1/...".
+		const client = new AnimaClient({ baseUrl: "https://api.useanima.sh/v1" });
+		await client.request("GET", "/agents");
+
+		const [url] = fetchMock.mock.calls[0] as [string, RequestInit];
+		expect(url).toContain("https://api.useanima.sh/v1/agents");
+		expect(url).not.toContain("/v1/v1");
+	});
 });
 
 describe("Debug logging", () => {

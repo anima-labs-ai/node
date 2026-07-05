@@ -39,7 +39,13 @@ export class AnimaClient implements RequestClient {
 			);
 		}
 		this.apiKey = apiKey;
-		this.baseUrl = (options.baseUrl ?? process.env.ANIMA_API_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+		// Normalize to an origin: strip trailing slashes, then a redundant trailing
+		// "/v1" (e.g. a caller who pasted the API banner's ".../v1" base URL). The
+		// SDK owns the version prefix (API_VERSION_PREFIX), so leaving "/v1" here
+		// would double-prefix to "/v1/v1" and 404.
+		this.baseUrl = (options.baseUrl ?? process.env.ANIMA_API_URL ?? DEFAULT_BASE_URL)
+			.replace(/\/+$/, "")
+			.replace(/\/v1$/, "");
 		this.timeout = options.timeout ?? DEFAULT_TIMEOUT;
 		this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
 		debug("Client initialized", { baseUrl: this.baseUrl, timeout: this.timeout, maxRetries: this.maxRetries });
