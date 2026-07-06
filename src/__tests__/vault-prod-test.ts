@@ -64,6 +64,22 @@ await test("createCredential()", async () => {
 	credId = c.id;
 });
 
+await test("createCredential({ generatePassword }) — server-side generation", async () => {
+	const c = await anima.vault.createCredential({
+		type: "login",
+		name: "SDK Prod GenPw Test",
+		login: { username: "sdkgen" },
+		generatePassword: { length: 32, special: false },
+	});
+	if (!c.id) throw new Error("no id returned");
+	// The create response must never carry the generated plaintext.
+	if (c.login?.password && c.login.password !== "****") {
+		throw new Error("generated password leaked in create response");
+	}
+	// Self-cleaning: this credential is not reused by later steps.
+	await anima.vault.deleteCredential(c.id);
+});
+
 await test("getCredential(id)", async () => {
 	const c = await anima.vault.getCredential(credId);
 	if (c.name !== "SDK Prod Test") throw new Error(`unexpected name: ${c.name}`);

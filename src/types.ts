@@ -462,6 +462,14 @@ export interface VaultCredential {
 	updatedAt: string;
 }
 
+export interface GeneratePasswordOptions {
+	length?: number;
+	uppercase?: boolean;
+	lowercase?: boolean;
+	number?: boolean;
+	special?: boolean;
+}
+
 export interface CreateVaultCredentialInput {
 	agentId?: string;
 	type: CredentialType;
@@ -472,6 +480,13 @@ export interface CreateVaultCredentialInput {
 	identity?: VaultIdentityData;
 	fields?: VaultCustomField[];
 	favorite?: boolean;
+	/**
+	 * Generate the login password server-side (login type only, mutually
+	 * exclusive with login.password). The password is stored in the vault
+	 * and never returned — the response carries only the masked credential
+	 * ref. Server defaults: 24 characters, all character classes.
+	 */
+	generatePassword?: GeneratePasswordOptions;
 }
 
 export interface UpdateVaultCredentialInput {
@@ -496,13 +511,8 @@ export interface SearchVaultParams {
 	type?: CredentialType;
 }
 
-export interface GeneratePasswordInput {
+export interface GeneratePasswordInput extends GeneratePasswordOptions {
 	agentId?: string;
-	length?: number;
-	uppercase?: boolean;
-	lowercase?: boolean;
-	number?: boolean;
-	special?: boolean;
 }
 
 export interface VaultTotpOutput {

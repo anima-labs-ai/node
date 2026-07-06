@@ -278,6 +278,17 @@ const credential = await anima.vault.createCredential({
   },
 });
 
+// Or have the vault generate the password server-side — it is stored
+// with the credential and never returned; the response carries only the
+// masked credential ref. (Defaults: 24 chars, all character classes.)
+const generated = await anima.vault.createCredential({
+  agentId: "agent_id",
+  type: "login",
+  name: "Acme Portal",
+  login: { username: "bot@example.com" },
+  generatePassword: { length: 32 },
+});
+
 // List and search credentials
 const creds = await anima.vault.listCredentials({ agentId: "agent_id", type: "login" });
 const results = await anima.vault.search({ agentId: "agent_id", search: "github" });
