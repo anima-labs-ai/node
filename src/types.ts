@@ -1504,3 +1504,28 @@ export interface VoiceMessage {
 export interface VoiceConnectionOptions {
 	agentId?: string;
 }
+
+// ---------------------------------------------------------------------------
+// Extension — headless connect
+// ---------------------------------------------------------------------------
+
+// Time-to-live for the browser session the connect URL opens. Shorten-only:
+// the server caps it at the agent's configured maximum. "session" ties the
+// lifetime to the browser session.
+export type ExtensionConnectTtl = "15m" | "1h" | "session";
+
+export interface ConnectExtensionInput {
+	// Required when authenticating with a master key (mk_ / ak_ admin);
+	// omit it when authenticating as the agent itself (its own key).
+	agentId?: string;
+	ttl?: ExtensionConnectTtl;
+}
+
+export interface ConnectExtensionResult {
+	agentId: string;
+	connectUrl: string;
+	// null when the session has no wall-clock expiry (e.g. ttl "session").
+	expiresAt: string | null;
+	exchangeExpiresAt: string;
+	policy: "session" | "pre_approved";
+}

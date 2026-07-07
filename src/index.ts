@@ -20,6 +20,7 @@ import { ComplianceResource } from "./resources/compliance";
 import { AnomalyResource } from "./resources/anomaly";
 import { VoicesResource } from "./resources/voices";
 import { CallsResource } from "./resources/calls";
+import { ExtensionResource } from "./resources/extension";
 import type { AnimaClientOptions, RequestEvent, ResponseEvent } from "./types";
 import { constructWebhookEvent, verifyWebhookSignature } from "./webhooks";
 
@@ -49,6 +50,7 @@ export class Anima {
 	public readonly anomaly: AnomalyResource;
 	public readonly voices: VoicesResource;
 	public readonly calls: CallsResource;
+	public readonly extension: ExtensionResource;
 
 	public static readonly webhooks = {
 		verify: verifyWebhookSignature,
@@ -82,6 +84,7 @@ export class Anima {
 		this.anomaly = new AnomalyResource(this.client);
 		this.voices = new VoicesResource(this.client);
 		this.calls = new CallsResource(this.client, apiKey, baseUrl);
+		this.extension = new ExtensionResource(this.client);
 	}
 
 	public on(event: "request", listener: (data: RequestEvent) => void): this;

@@ -11,6 +11,7 @@ import { SecurityResource } from "../resources/security";
 import { WebhooksResource } from "../resources/webhooks";
 import { VoicesResource } from "../resources/voices";
 import { CallsResource } from "../resources/calls";
+import { ExtensionResource } from "../resources/extension";
 
 function createMockClient(): { client: RequestClient; requestMock: ReturnType<typeof mock> } {
 	const requestMock = mock(async () => ({ ok: true }));
@@ -333,5 +334,41 @@ describe("resource methods", () => {
 
 		await resource.getTranscript("call_1");
 		expect(requestMock).toHaveBeenCalledWith("GET", "/voice/calls/call_1/transcript", undefined, undefined, undefined);
+	});
+
+	test("extension resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new ExtensionResource(client);
+
+		// Master-key call: agentId + ttl both provided.
+		await resource.connect({ agentId: "agent_1", ttl: "15m" });
+		expect(requestMock).toHaveBeenCalledWith("POST", "/extension/connect", { agentId: "agent_1", ttl: "15m" }, undefined, undefined);
+
+		// Agent-key call: no input — the body must be empty, not { agentId: undefined }.
+		await resource.connect();
+		expect(requestMock).toHaveBeenCalledWith("POST", "/extension/connect", {}, undefined, undefined);
+
+		// Only ttl provided — agentId key must be absent from the body.
+		await resource.connect({ ttl: "session" });
+		expect(requestMock).toHaveBeenCalledWith("POST", "/extension/connect", { ttl: "session" }, undefined, undefined);
+	});
+
+	test("extension resource surfaces the connectUrl from the response", async () => {
+		const response = {
+			agentId: "agent_1",
+			connectUrl: "https://connect.useanima.sh/ext/abc123",
+			expiresAt: "2026-07-07T12:15:00.000Z",
+			exchangeExpiresAt: "2026-07-07T11:05:00.000Z",
+			policy: "session" as const,
+		};
+		const requestMock = mock(async () => response);
+		const client: RequestClient = { request: requestMock as RequestClient["request"] };
+		const resource = new ExtensionResource(client);
+
+		const result = await resource.connect({ agentId: "agent_1" });
+
+		expect(result.connectUrl).toBe("https://connect.useanima.sh/ext/abc123");
+		expect(result.agentId).toBe("agent_1");
+		expect(result.policy).toBe("session");
 	});
 });
