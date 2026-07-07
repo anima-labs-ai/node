@@ -318,6 +318,23 @@ await anima.vault.sync("agent_id");
 await anima.vault.deprovision({ agentId: "agent_id" });
 ```
 
+### Extension
+
+Mint a connect URL that opens the Anima browser extension already bound to an
+agent's session — for headless / Puppeteer workers.
+
+```ts
+// With a master key, pass the agent to connect. As the agent's own key, omit
+// agentId. `ttl` is optional and shorten-only ("15m" | "1h" | "session").
+const { connectUrl, expiresAt, policy } = await anima.extension.connect({
+  agentId: "agent_id",
+  ttl: "15m",
+});
+
+// As the agent itself (agent key) — no arguments needed.
+const session = await anima.extension.connect();
+```
+
 ## Webhook Verification
 
 Verify incoming webhook signatures using HMAC-SHA256:
