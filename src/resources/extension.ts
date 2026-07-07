@@ -6,8 +6,9 @@ export class ExtensionResource {
 
 	// Mint a connect URL that opens the Anima browser extension already bound
 	// to an agent's session. Auth model: with a master key, pass `agentId`;
-	// as the agent itself, omit it. `ttl` is shorten-only — the server caps it
-	// at the agent's configured maximum. The response never carries a secret.
+	// as the agent itself, omit it. A `ttl` longer than the org's configured
+	// maximum is rejected (not silently shortened) — omit it to use the org
+	// default. The response never carries a secret.
 	public connect(input: ConnectExtensionInput = {}, options?: RequestOptions): Promise<ConnectExtensionResult> {
 		// Send only the keys the caller provided — the server distinguishes
 		// "omitted" (derive agentId from the key) from an explicit value.
