@@ -1,6 +1,7 @@
 import { describe, expect, mock, test } from "bun:test";
 
 import type { RequestClient } from "../client";
+import { A2AResource } from "../resources/a2a";
 import { AgentsResource } from "../resources/agents";
 import { DomainsResource } from "../resources/domains";
 import { EmailsResource } from "../resources/emails";
@@ -370,5 +371,20 @@ describe("resource methods", () => {
 		expect(result.connectUrl).toBe("https://connect.useanima.sh/ext/abc123");
 		expect(result.agentId).toBe("agent_1");
 		expect(result.policy).toBe("session");
+	});
+
+	test("a2a resource dispatch uses expected method/path", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new A2AResource(client);
+
+		await resource.dispatch("ag_1", { toDid: "did:web:example.com", type: "ping", input: {} });
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/agents/ag_1/a2a/dispatch",
+			{ fromAgentId: "ag_1", toDid: "did:web:example.com", type: "ping", input: {} },
+			undefined,
+			undefined,
+		);
 	});
 });

@@ -1067,6 +1067,12 @@ export interface A2ASubmitTaskInput {
 	fromDid?: string;
 }
 
+export interface A2ADispatchInput {
+	toDid: string;
+	type: string;
+	input: Record<string, unknown>;
+}
+
 export interface A2AArtifact {
 	name: string;
 	mimeType: string;

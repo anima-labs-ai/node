@@ -1,5 +1,6 @@
 import type { RequestClient } from "../client";
 import type {
+	A2ADispatchInput,
 	A2ASubmitTaskInput,
 	A2ATaskOutput,
 	A2ATaskListParams,
@@ -63,6 +64,20 @@ export class A2AResource {
 			"POST",
 			`/agents/${agentId}/a2a/tasks/${taskId}/cancel`,
 			undefined,
+			undefined,
+			options,
+		);
+	}
+
+	public dispatch(
+		fromAgentId: string,
+		input: A2ADispatchInput,
+		options?: RequestOptions,
+	): Promise<A2ATaskOutput> {
+		return this.client.request<A2ATaskOutput>(
+			"POST",
+			`/agents/${fromAgentId}/a2a/dispatch`,
+			{ fromAgentId, ...input },
 			undefined,
 			options,
 		);
