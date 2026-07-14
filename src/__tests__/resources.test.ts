@@ -102,16 +102,31 @@ describe("resource methods", () => {
 		);
 	});
 
-	test("vault resource exposes NO plaintext-reveal method (never-see in SDK)", () => {
+	test("the agent-facing use path is the broker; reads are masked (never-see)", () => {
 		const { client } = createMockClient();
 		const resource = new VaultResource(client);
-		// exchangeToken returned plaintext and is deliberately removed; the SDK's
-		// use path is the broker (useCredential). Reads are masked-only.
+		// The old UNGATED exchangeToken() is gone; an agent uses secrets via the
+		// broker (useCredential), and getCredential sends no reveal flag.
 		expect(
 			(resource as unknown as Record<string, unknown>).exchangeToken,
 		).toBeUndefined();
 		expect(typeof resource.useCredential).toBe("function");
 		expect(typeof resource.getCredential).toBe("function");
+	});
+
+	test("vault exchangeTokenForInjection posts to the injector exchange endpoint", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new VaultResource(client);
+		// Returns plaintext; the API gates it to injector credentials (master /
+		// vault:inject), so a plain agent key gets 403 server-side.
+		await resource.exchangeTokenForInjection("vtk_abc");
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/vault/token/exchange",
+			{ token: "vtk_abc" },
+			undefined,
+			undefined,
+		);
 	});
 
 	test("vault getCredential does not send a reveal/unmask flag (no plaintext via SDK)", async () => {

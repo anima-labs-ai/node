@@ -275,12 +275,27 @@ export class VaultResource {
 		);
 	}
 
-	// NOTE: there is deliberately NO exchangeToken() here. Exchanging a vault
-	// token returns the plaintext credential, and the SDK never exposes a
-	// plaintext-reveal path — an agent must be able to USE a secret, never SEE
-	// it. Server-side use goes through useCredential() (the broker); browser/CLI
-	// injection uses the token-exchange endpoint directly from the trusted
-	// client process, not via this SDK.
+	/**
+	 * Exchange a vault token for the PLAINTEXT credential, to inject into a
+	 * trusted client process (a CLI, the browser extension) — NEVER to read into
+	 * an LLM's context. The API gates this to injector credentials: it succeeds
+	 * only when the client is configured with a master key or a key carrying the
+	 * `vault:inject` scope; a plain agent key gets 403. For an agent to *use* a
+	 * secret without seeing it, call {@link useCredential} (the server-side
+	 * broker) instead.
+	 */
+	public exchangeTokenForInjection(
+		token: string,
+		options?: RequestOptions,
+	): Promise<VaultCredential> {
+		return this.client.request<VaultCredential>(
+			"POST",
+			"/vault/token/exchange",
+			{ token },
+			undefined,
+			options,
+		);
+	}
 
 	public revokeTokens(
 		input: RevokeVaultTokensInput,
