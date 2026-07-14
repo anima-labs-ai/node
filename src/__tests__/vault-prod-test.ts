@@ -141,10 +141,11 @@ await test("createToken(input)", async () => {
 		throw new Error(`bad token prefix: ${r.token}`);
 });
 
-// exchangeToken is intentionally NOT on the SDK: it returns plaintext, and the
-// SDK exposes no plaintext-reveal path. The token minted above is meant to be
-// handed to a trusted injector (browser extension / CLI), which exchanges it
-// against the API directly.
+// The ungated exchangeToken is gone. exchangeTokenForInjection IS on the SDK,
+// but it is the GATED injector primitive — the API 403s a plain agent key — so
+// an ordinary agent still has no plaintext-reveal path. The token minted above
+// is meant to be handed to a trusted injector (browser extension / CLI), which
+// exchanges it against the API directly.
 
 await test("revokeTokens(input)", async () => {
 	// Create another token to revoke

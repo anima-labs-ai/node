@@ -508,8 +508,9 @@ export interface VaultRateLimit {
 
 export interface VaultApiKeyData {
 	provider: string;
-	/** The API key value. Stored encrypted; always read back masked. */
-	key: string;
+	/** The API key value. Stored encrypted; always read back masked. Optional on
+	 * this shared read/write type, mirroring VaultLoginData.password?. */
+	key?: string;
 	prefix?: string;
 	rateLimit?: VaultRateLimit;
 	expiresAt?: string;
@@ -528,10 +529,11 @@ export interface VaultApiKeyData {
 
 export interface VaultOAuthTokenData {
 	provider: string;
-	/** Stored encrypted; always read back masked. */
-	accessToken: string;
-	/** Stored encrypted; never read back. */
-	refreshToken: string;
+	/** Stored encrypted; always read back masked. Optional on this shared
+	 * read/write type, mirroring VaultLoginData.password?. */
+	accessToken?: string;
+	/** Stored encrypted; never read back — always absent on reads. */
+	refreshToken?: string;
 	tokenEndpoint: string;
 	clientId: string;
 	clientSecret?: string;
@@ -545,8 +547,9 @@ export interface VaultOAuthTokenData {
 export interface VaultCertificateData {
 	format: "pem" | "p12" | "jks";
 	certificate: string;
-	/** Stored encrypted; always read back masked. */
-	privateKey: string;
+	/** Stored encrypted; always read back masked. Optional on this shared
+	 * read/write type, mirroring VaultLoginData.password?. */
+	privateKey?: string;
 	chain?: string[];
 	expiresAt: string;
 }

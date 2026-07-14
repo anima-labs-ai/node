@@ -118,23 +118,18 @@ describe("resource methods", () => {
 		const { client, requestMock } = createMockClient();
 		const resource = new VaultResource(client);
 
+		// PageIterator is awaitable (thenable) — awaiting fetches the first page.
 		await resource.listIdentities({ status: "ACTIVE", limit: 10 });
-		expect(requestMock).toHaveBeenCalledWith(
-			"GET",
-			"/vault/identities",
-			undefined,
-			{ status: "ACTIVE", limit: "10" },
-			undefined,
-		);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/vault/identities", undefined, {
+			status: "ACTIVE",
+			limit: "10",
+		});
 
 		await resource.audit({ credentialId: "cred_1", action: "broker_use" });
-		expect(requestMock).toHaveBeenCalledWith(
-			"GET",
-			"/vault/audit",
-			undefined,
-			{ credentialId: "cred_1", action: "broker_use" },
-			undefined,
-		);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/vault/audit", undefined, {
+			credentialId: "cred_1",
+			action: "broker_use",
+		});
 	});
 
 	test("vault createCredential carries api_key broker config (allowedHosts + revealPolicy)", async () => {
