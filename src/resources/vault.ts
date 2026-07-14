@@ -275,18 +275,12 @@ export class VaultResource {
 		);
 	}
 
-	public exchangeToken(
-		token: string,
-		options?: RequestOptions,
-	): Promise<VaultCredential> {
-		return this.client.request<VaultCredential>(
-			"POST",
-			"/vault/token/exchange",
-			{ token },
-			undefined,
-			options,
-		);
-	}
+	// NOTE: there is deliberately NO exchangeToken() here. Exchanging a vault
+	// token returns the plaintext credential, and the SDK never exposes a
+	// plaintext-reveal path — an agent must be able to USE a secret, never SEE
+	// it. Server-side use goes through useCredential() (the broker); browser/CLI
+	// injection uses the token-exchange endpoint directly from the trusted
+	// client process, not via this SDK.
 
 	public revokeTokens(
 		input: RevokeVaultTokensInput,

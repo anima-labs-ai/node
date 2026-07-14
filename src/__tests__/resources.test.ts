@@ -102,6 +102,18 @@ describe("resource methods", () => {
 		);
 	});
 
+	test("vault resource exposes NO plaintext-reveal method (never-see in SDK)", () => {
+		const { client } = createMockClient();
+		const resource = new VaultResource(client);
+		// exchangeToken returned plaintext and is deliberately removed; the SDK's
+		// use path is the broker (useCredential). Reads are masked-only.
+		expect(
+			(resource as unknown as Record<string, unknown>).exchangeToken,
+		).toBeUndefined();
+		expect(typeof resource.useCredential).toBe("function");
+		expect(typeof resource.getCredential).toBe("function");
+	});
+
 	test("vault getCredential does not send a reveal/unmask flag (no plaintext via SDK)", async () => {
 		const { client, requestMock } = createMockClient();
 		const resource = new VaultResource(client);
