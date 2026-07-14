@@ -114,6 +114,98 @@ describe("resource methods", () => {
 		expect(typeof resource.getCredential).toBe("function");
 	});
 
+	test("vault createCredential carries api_key broker config (allowedHosts + revealPolicy)", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new VaultResource(client);
+
+		await resource.createCredential({
+			type: "api_key",
+			name: "Stripe key",
+			apiKey: {
+				provider: "stripe",
+				key: "sk_live_x",
+				allowedHosts: ["api.stripe.com"],
+				authHeader: "Authorization",
+				authScheme: "Bearer ",
+			},
+			revealPolicy: "brokered",
+		});
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/vault/credentials",
+			{
+				type: "api_key",
+				name: "Stripe key",
+				apiKey: {
+					provider: "stripe",
+					key: "sk_live_x",
+					allowedHosts: ["api.stripe.com"],
+					authHeader: "Authorization",
+					authScheme: "Bearer ",
+				},
+				revealPolicy: "brokered",
+			},
+			undefined,
+			undefined,
+		);
+	});
+
+	test("vault credentialRequestCreate posts the request and never a secret", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new VaultResource(client);
+
+		await resource.credentialRequestCreate({
+			type: "api_key",
+			name: "Prod Stripe key",
+			reason: "Deploy needs to verify billing",
+			ttlSeconds: 600,
+		});
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/vault/credential-requests",
+			{
+				type: "api_key",
+				name: "Prod Stripe key",
+				reason: "Deploy needs to verify billing",
+				ttlSeconds: 600,
+			},
+			undefined,
+			undefined,
+		);
+	});
+
+	test("vault credentialRequestStatus polls by requestId", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new VaultResource(client);
+
+		await resource.credentialRequestStatus("req_1");
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/vault/credential-requests/req_1",
+			undefined,
+			undefined,
+			undefined,
+		);
+	});
+
+	test("vault credentialRequestCancel posts to /cancel", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new VaultResource(client);
+
+		await resource.credentialRequestCancel("req_1");
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/vault/credential-requests/req_1/cancel",
+			undefined,
+			undefined,
+			undefined,
+		);
+	});
+
 	test("vault exchangeTokenForInjection posts to the injector exchange endpoint", async () => {
 		const { client, requestMock } = createMockClient();
 		const resource = new VaultResource(client);

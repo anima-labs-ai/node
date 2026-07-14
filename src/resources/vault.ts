@@ -1,6 +1,8 @@
 import type { RequestClient } from "../client";
 import type {
+	CancelVaultCredentialRequestOutput,
 	CreateVaultCredentialInput,
+	CreateVaultCredentialRequestInput,
 	CreateVaultTokenInput,
 	DeprovisionVaultInput,
 	GeneratePasswordInput,
@@ -14,6 +16,8 @@ import type {
 	UseVaultCredentialInput,
 	UseVaultCredentialOutput,
 	VaultCredential,
+	VaultCredentialRequest,
+	VaultCredentialRequestStatusOutput,
 	VaultIdentityOutput,
 	VaultShare,
 	VaultStatusOutput,
@@ -182,6 +186,51 @@ export class VaultResource {
 			`/vault/totp/${id}`,
 			undefined,
 			agentId ? { agentId } : undefined,
+			options,
+		);
+	}
+
+	/**
+	 * Ask a human for a credential the agent must never see. Returns a
+	 * token-gated fill URL the owner completes out-of-band; poll
+	 * `credentialRequestStatus` until FULFILLED, then use the credential
+	 * by reference (`useCredential`) — the plaintext is never returned.
+	 */
+	public credentialRequestCreate(
+		input: CreateVaultCredentialRequestInput,
+		options?: RequestOptions,
+	): Promise<VaultCredentialRequest> {
+		return this.client.request<VaultCredentialRequest>(
+			"POST",
+			"/vault/credential-requests",
+			input,
+			undefined,
+			options,
+		);
+	}
+
+	public credentialRequestStatus(
+		requestId: string,
+		options?: RequestOptions,
+	): Promise<VaultCredentialRequestStatusOutput> {
+		return this.client.request<VaultCredentialRequestStatusOutput>(
+			"GET",
+			`/vault/credential-requests/${requestId}`,
+			undefined,
+			undefined,
+			options,
+		);
+	}
+
+	public credentialRequestCancel(
+		requestId: string,
+		options?: RequestOptions,
+	): Promise<CancelVaultCredentialRequestOutput> {
+		return this.client.request<CancelVaultCredentialRequestOutput>(
+			"POST",
+			`/vault/credential-requests/${requestId}/cancel`,
+			undefined,
+			undefined,
 			options,
 		);
 	}

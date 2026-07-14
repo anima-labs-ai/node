@@ -397,7 +397,21 @@ export interface PhoneProvisionOutput {
 	createdAt: string;
 }
 
-export type CredentialType = "login" | "secure_note" | "card" | "identity";
+export type CredentialType =
+	| "login"
+	| "secure_note"
+	| "card"
+	| "identity"
+	| "oauth_token"
+	| "api_key"
+	| "certificate";
+
+/**
+ * Governs the credential's plaintext reveal paths. "brokered" refuses reveal
+ * and export on every key type — including the org master key — so the secret
+ * is only usable through `useCredential` (recovery = rotation).
+ */
+export type RevealPolicy = "standard" | "brokered";
 
 export interface ProvisionVaultInput {
 	agentId: string;
@@ -452,6 +466,57 @@ export interface VaultCustomField {
 	type: "text" | "hidden" | "boolean";
 }
 
+export interface VaultRateLimit {
+	requests: number;
+	/** Rate-limit window, e.g. "1m", "1h", "1d". */
+	window: string;
+}
+
+export interface VaultApiKeyData {
+	provider: string;
+	/** The API key value. Stored encrypted; always read back masked. */
+	key: string;
+	prefix?: string;
+	rateLimit?: VaultRateLimit;
+	expiresAt?: string;
+	scopes?: string[];
+	/**
+	 * Hosts this key may be brokered to via `useCredential`. Fail-closed:
+	 * with no hosts the broker refuses every call. After creation only a
+	 * master key may change this list.
+	 */
+	allowedHosts?: string[];
+	/** Header the broker injects the key into (default "Authorization"). */
+	authHeader?: string;
+	/** Value prefix before the key (default "Bearer "; "" for a raw key). */
+	authScheme?: string;
+}
+
+export interface VaultOAuthTokenData {
+	provider: string;
+	/** Stored encrypted; always read back masked. */
+	accessToken: string;
+	/** Stored encrypted; never read back. */
+	refreshToken: string;
+	tokenEndpoint: string;
+	clientId: string;
+	clientSecret?: string;
+	scopes: string[];
+	expiresAt: string;
+	autoRefresh?: boolean;
+	/** Hosts this token may be brokered to via `useCredential`. Fail-closed. */
+	allowedHosts?: string[];
+}
+
+export interface VaultCertificateData {
+	format: "pem" | "p12" | "jks";
+	certificate: string;
+	/** Stored encrypted; always read back masked. */
+	privateKey: string;
+	chain?: string[];
+	expiresAt: string;
+}
+
 export interface VaultCredential {
 	id: string;
 	type: CredentialType;
@@ -460,8 +525,15 @@ export interface VaultCredential {
 	login?: VaultLoginData;
 	card?: VaultCardData;
 	identity?: VaultIdentityData;
+	oauthToken?: VaultOAuthTokenData;
+	apiKey?: VaultApiKeyData;
+	certificate?: VaultCertificateData;
 	fields?: VaultCustomField[];
 	favorite: boolean;
+	revealPolicy?: RevealPolicy;
+	folderId?: string;
+	organizationId?: string;
+	collectionIds?: string[];
 	createdAt: string;
 	updatedAt: string;
 }
@@ -482,6 +554,9 @@ export interface CreateVaultCredentialInput {
 	login?: VaultLoginData;
 	card?: VaultCardData;
 	identity?: VaultIdentityData;
+	oauthToken?: VaultOAuthTokenData;
+	apiKey?: VaultApiKeyData;
+	certificate?: VaultCertificateData;
 	fields?: VaultCustomField[];
 	favorite?: boolean;
 	/**
@@ -491,6 +566,12 @@ export interface CreateVaultCredentialInput {
 	 * ref. Server defaults: 24 characters, all character classes.
 	 */
 	generatePassword?: GeneratePasswordOptions;
+	/**
+	 * When omitted, agent-key-created logins default to "brokered" and
+	 * oauth_token credentials are always brokered; everything else follows
+	 * the org's default reveal policy.
+	 */
+	revealPolicy?: RevealPolicy;
 }
 
 export interface UpdateVaultCredentialInput {
@@ -500,8 +581,16 @@ export interface UpdateVaultCredentialInput {
 	login?: VaultLoginData;
 	card?: VaultCardData;
 	identity?: VaultIdentityData;
+	oauthToken?: VaultOAuthTokenData;
+	apiKey?: VaultApiKeyData;
+	certificate?: VaultCertificateData;
 	fields?: VaultCustomField[];
 	favorite?: boolean;
+	/**
+	 * Upgrading standard → brokered needs UPDATE access; downgrading
+	 * brokered → standard is master-key-only and audited.
+	 */
+	revealPolicy?: RevealPolicy;
 }
 
 export interface ListVaultCredentialsParams {
@@ -528,6 +617,54 @@ export interface VaultStatusOutput {
 	serverUrl: string;
 	lastSync: string | null;
 	status: string;
+}
+
+// ---------------------------------------------------------------------------
+// Vault — Human-in-the-loop credential requests
+// ---------------------------------------------------------------------------
+
+export type VaultCredentialRequestStatus =
+	| "PENDING"
+	| "FULFILLED"
+	| "EXPIRED"
+	| "DECLINED"
+	| "CANCELLED";
+
+export interface CreateVaultCredentialRequestInput {
+	agentId?: string;
+	/** Type of credential the human is asked to provide. */
+	type: CredentialType;
+	/** Display name for the credential to be created. */
+	name: string;
+	/** Shown to the owner: why the credential is needed. */
+	reason: string;
+	/** Request TTL in seconds (60-3600, default 900). */
+	ttlSeconds?: number;
+	/** Email the fill URL to the org owner. */
+	notifyOwner?: boolean;
+}
+
+export interface VaultCredentialRequest {
+	requestId: string;
+	/** Token-gated URL where the human submits the secret. */
+	fillUrl: string;
+	status: VaultCredentialRequestStatus;
+	expiresAt: string;
+	emailSent: boolean;
+	/** Set when the request resolves synchronously; null/absent otherwise. */
+	credentialId?: string | null;
+}
+
+export interface VaultCredentialRequestStatusOutput {
+	status: VaultCredentialRequestStatus;
+	/** Vault credential ID once FULFILLED, null otherwise. */
+	credentialId: string | null;
+	/** Masked preview (e.g. ****1234) — never the plaintext. */
+	maskedPreview: string | null;
+}
+
+export interface CancelVaultCredentialRequestOutput {
+	status: VaultCredentialRequestStatus;
 }
 
 // ---------------------------------------------------------------------------
