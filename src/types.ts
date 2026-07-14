@@ -431,6 +431,40 @@ export interface VaultIdentityOutput {
 	createdAt: string;
 }
 
+export interface ListVaultIdentitiesParams {
+	status?: "ACTIVE" | "LOCKED" | "ERROR";
+	limit?: number;
+	cursor?: string;
+}
+
+export interface VaultIdentityListItem extends VaultIdentityOutput {
+	agentName: string;
+	agentSlug: string;
+}
+
+export interface VaultAuditQueryParams {
+	credentialId?: string;
+	agentId?: string;
+	/** e.g. access, store, delete, broker_use, broker_use_denied */
+	action?: string;
+	since?: string;
+	until?: string;
+	cursor?: string;
+	limit?: number;
+}
+
+export interface VaultAuditLogEntry {
+	id: string;
+	credentialId: string;
+	agentId: string;
+	orgId: string;
+	action: string;
+	actor: string;
+	ipAddress?: string | null;
+	metadata?: Record<string, unknown> | null;
+	createdAt: string;
+}
+
 export interface VaultLoginData {
 	username?: string;
 	password?: string;

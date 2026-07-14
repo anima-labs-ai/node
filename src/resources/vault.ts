@@ -7,6 +7,8 @@ import type {
 	DeprovisionVaultInput,
 	GeneratePasswordInput,
 	ListVaultCredentialsParams,
+	ListVaultIdentitiesParams,
+	PaginatedResponse,
 	ProvisionVaultInput,
 	RequestOptions,
 	RevokeShareInput,
@@ -15,9 +17,12 @@ import type {
 	ShareCredentialInput,
 	UseVaultCredentialInput,
 	UseVaultCredentialOutput,
+	VaultAuditLogEntry,
+	VaultAuditQueryParams,
 	VaultCredential,
 	VaultCredentialRequest,
 	VaultCredentialRequestStatusOutput,
+	VaultIdentityListItem,
 	VaultIdentityOutput,
 	VaultShare,
 	VaultStatusOutput,
@@ -28,6 +33,48 @@ import type {
 
 export class VaultResource {
 	public constructor(private readonly client: RequestClient) {}
+
+	public listIdentities(
+		params?: ListVaultIdentitiesParams,
+		options?: RequestOptions,
+	): Promise<PaginatedResponse<VaultIdentityListItem>> {
+		const query: Record<string, string> = {};
+		if (params?.status) query.status = params.status;
+		if (params?.limit !== undefined) query.limit = String(params.limit);
+		if (params?.cursor) query.cursor = params.cursor;
+		return this.client.request<PaginatedResponse<VaultIdentityListItem>>(
+			"GET",
+			"/vault/identities",
+			undefined,
+			Object.keys(query).length > 0 ? query : undefined,
+			options,
+		);
+	}
+
+	/**
+	 * Query the credential audit trail — every access, share, broker use, and
+	 * denied egress is recorded here (never with any secret material).
+	 */
+	public audit(
+		params?: VaultAuditQueryParams,
+		options?: RequestOptions,
+	): Promise<PaginatedResponse<VaultAuditLogEntry>> {
+		const query: Record<string, string> = {};
+		if (params?.credentialId) query.credentialId = params.credentialId;
+		if (params?.agentId) query.agentId = params.agentId;
+		if (params?.action) query.action = params.action;
+		if (params?.since) query.since = params.since;
+		if (params?.until) query.until = params.until;
+		if (params?.cursor) query.cursor = params.cursor;
+		if (params?.limit !== undefined) query.limit = String(params.limit);
+		return this.client.request<PaginatedResponse<VaultAuditLogEntry>>(
+			"GET",
+			"/vault/audit",
+			undefined,
+			Object.keys(query).length > 0 ? query : undefined,
+			options,
+		);
+	}
 
 	public provision(
 		input: ProvisionVaultInput,

@@ -114,6 +114,29 @@ describe("resource methods", () => {
 		expect(typeof resource.getCredential).toBe("function");
 	});
 
+	test("vault listIdentities and audit query under /vault with filters", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new VaultResource(client);
+
+		await resource.listIdentities({ status: "ACTIVE", limit: 10 });
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/vault/identities",
+			undefined,
+			{ status: "ACTIVE", limit: "10" },
+			undefined,
+		);
+
+		await resource.audit({ credentialId: "cred_1", action: "broker_use" });
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/vault/audit",
+			undefined,
+			{ credentialId: "cred_1", action: "broker_use" },
+			undefined,
+		);
+	});
+
 	test("vault createCredential carries api_key broker config (allowedHosts + revealPolicy)", async () => {
 		const { client, requestMock } = createMockClient();
 		const resource = new VaultResource(client);
