@@ -1,17 +1,29 @@
 import type { RequestClient } from "../client";
+import { PageIterator } from "../pagination";
 import type {
+	CancelVaultCredentialRequestOutput,
 	CreateVaultCredentialInput,
+	CreateVaultCredentialRequestInput,
 	CreateVaultTokenInput,
 	DeprovisionVaultInput,
 	GeneratePasswordInput,
 	ListVaultCredentialsParams,
+	ListVaultIdentitiesParams,
+	PaginatedResponse,
 	ProvisionVaultInput,
 	RequestOptions,
 	RevokeShareInput,
 	RevokeVaultTokensInput,
 	SearchVaultParams,
 	ShareCredentialInput,
+	UseVaultCredentialInput,
+	UseVaultCredentialOutput,
+	VaultAuditLogEntry,
+	VaultAuditQueryParams,
 	VaultCredential,
+	VaultCredentialRequest,
+	VaultCredentialRequestStatusOutput,
+	VaultIdentityListItem,
 	VaultIdentityOutput,
 	VaultShare,
 	VaultStatusOutput,
@@ -23,15 +35,90 @@ import type {
 export class VaultResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public provision(input: ProvisionVaultInput, options?: RequestOptions): Promise<VaultIdentityOutput> {
-		return this.client.request<VaultIdentityOutput>("POST", "/vault/provision", input, undefined, options);
+	public listIdentities(
+		params?: ListVaultIdentitiesParams,
+	): PageIterator<VaultIdentityListItem> {
+		return new PageIterator<VaultIdentityListItem>((cursor) => {
+			const merged = cursor ? { ...params, cursor } : params;
+			return this.client.request<PaginatedResponse<VaultIdentityListItem>>(
+				"GET",
+				"/vault/identities",
+				undefined,
+				this.toIdentitiesQuery(merged),
+			);
+		});
 	}
 
-	public deprovision(input: DeprovisionVaultInput, options?: RequestOptions): Promise<{ success: true }> {
-		return this.client.request<{ success: true }>("POST", "/vault/deprovision", input, undefined, options);
+	/**
+	 * Query the credential audit trail — every access, share, broker use, and
+	 * denied egress is recorded here (never with any secret material).
+	 */
+	public audit(params?: VaultAuditQueryParams): PageIterator<VaultAuditLogEntry> {
+		return new PageIterator<VaultAuditLogEntry>((cursor) => {
+			const merged = cursor ? { ...params, cursor } : params;
+			return this.client.request<PaginatedResponse<VaultAuditLogEntry>>(
+				"GET",
+				"/vault/audit",
+				undefined,
+				this.toAuditQuery(merged),
+			);
+		});
 	}
 
-	public listCredentials(params?: ListVaultCredentialsParams, options?: RequestOptions): Promise<{ items: VaultCredential[] }> {
+	private toIdentitiesQuery(
+		params?: ListVaultIdentitiesParams,
+	): Record<string, string> {
+		const query: Record<string, string> = {};
+		if (!params) return query;
+		if (params.status) query.status = params.status;
+		if (params.limit !== undefined) query.limit = String(params.limit);
+		if (params.cursor) query.cursor = params.cursor;
+		return query;
+	}
+
+	private toAuditQuery(params?: VaultAuditQueryParams): Record<string, string> {
+		const query: Record<string, string> = {};
+		if (!params) return query;
+		if (params.credentialId) query.credentialId = params.credentialId;
+		if (params.agentId) query.agentId = params.agentId;
+		if (params.action) query.action = params.action;
+		if (params.since) query.since = params.since;
+		if (params.until) query.until = params.until;
+		if (params.cursor) query.cursor = params.cursor;
+		if (params.limit !== undefined) query.limit = String(params.limit);
+		return query;
+	}
+
+	public provision(
+		input: ProvisionVaultInput,
+		options?: RequestOptions,
+	): Promise<VaultIdentityOutput> {
+		return this.client.request<VaultIdentityOutput>(
+			"POST",
+			"/vault/provision",
+			input,
+			undefined,
+			options,
+		);
+	}
+
+	public deprovision(
+		input: DeprovisionVaultInput,
+		options?: RequestOptions,
+	): Promise<{ success: true }> {
+		return this.client.request<{ success: true }>(
+			"POST",
+			"/vault/deprovision",
+			input,
+			undefined,
+			options,
+		);
+	}
+
+	public listCredentials(
+		params?: ListVaultCredentialsParams,
+		options?: RequestOptions,
+	): Promise<{ items: VaultCredential[] }> {
 		return this.client.request<{ items: VaultCredential[] }>(
 			"GET",
 			"/vault/credentials",
@@ -41,23 +128,75 @@ export class VaultResource {
 		);
 	}
 
-	public getCredential(id: string, agentId?: string, options?: RequestOptions): Promise<VaultCredential> {
-		return this.client.request<VaultCredential>("GET", `/vault/credentials/${id}`, undefined, agentId ? { agentId } : undefined, options);
+	public getCredential(
+		id: string,
+		agentId?: string,
+		options?: RequestOptions,
+	): Promise<VaultCredential> {
+		return this.client.request<VaultCredential>(
+			"GET",
+			`/vault/credentials/${id}`,
+			undefined,
+			agentId ? { agentId } : undefined,
+			options,
+		);
 	}
 
-	public createCredential(input: CreateVaultCredentialInput, options?: RequestOptions): Promise<VaultCredential> {
-		return this.client.request<VaultCredential>("POST", "/vault/credentials", input, undefined, options);
+	public createCredential(
+		input: CreateVaultCredentialInput,
+		options?: RequestOptions,
+	): Promise<VaultCredential> {
+		return this.client.request<VaultCredential>(
+			"POST",
+			"/vault/credentials",
+			input,
+			undefined,
+			options,
+		);
 	}
 
-	public updateCredential(id: string, input: UpdateVaultCredentialInput, options?: RequestOptions): Promise<VaultCredential> {
+	/**
+	 * Make an outbound HTTPS call with the credential attached server-side and
+	 * return the upstream response. The plaintext secret is never returned — you
+	 * can use a credential without ever seeing it. Works for brokered credentials.
+	 */
+	public useCredential(
+		id: string,
+		input: UseVaultCredentialInput,
+		options?: RequestOptions,
+	): Promise<UseVaultCredentialOutput> {
+		return this.client.request<UseVaultCredentialOutput>(
+			"POST",
+			`/vault/credentials/${id}/use`,
+			input,
+			undefined,
+			options,
+		);
+	}
+
+	public updateCredential(
+		id: string,
+		input: UpdateVaultCredentialInput,
+		options?: RequestOptions,
+	): Promise<VaultCredential> {
 		// agentId lives in the body for write ops (POST/PUT) alongside the
 		// rest of the update payload. Read ops (GET/DELETE) put it in the
 		// query string. This asymmetry matches the server contract and the
 		// HTTP conventions baked into the OpenAPI routes.
-		return this.client.request<VaultCredential>("PUT", `/vault/credentials/${id}`, input, undefined, options);
+		return this.client.request<VaultCredential>(
+			"PUT",
+			`/vault/credentials/${id}`,
+			input,
+			undefined,
+			options,
+		);
 	}
 
-	public async deleteCredential(id: string, agentId?: string, options?: RequestOptions): Promise<void> {
+	public async deleteCredential(
+		id: string,
+		agentId?: string,
+		options?: RequestOptions,
+	): Promise<void> {
 		// agentId goes in the query string — DELETE requests carry no body
 		// per RFC 7231. Previously this was passed in the body slot, which the
 		// server silently ignored and then 400-ed "missing agentId". Align
@@ -71,7 +210,10 @@ export class VaultResource {
 		);
 	}
 
-	public search(params: SearchVaultParams, options?: RequestOptions): Promise<{ items: VaultCredential[] }> {
+	public search(
+		params: SearchVaultParams,
+		options?: RequestOptions,
+	): Promise<{ items: VaultCredential[] }> {
 		return this.client.request<{ items: VaultCredential[] }>(
 			"GET",
 			"/vault/search",
@@ -81,28 +223,119 @@ export class VaultResource {
 		);
 	}
 
-	public generatePassword(input?: GeneratePasswordInput, options?: RequestOptions): Promise<{ password: string }> {
-		return this.client.request<{ password: string }>("POST", "/vault/generate-password", input ?? {}, undefined, options);
+	public generatePassword(
+		input?: GeneratePasswordInput,
+		options?: RequestOptions,
+	): Promise<{ password: string }> {
+		return this.client.request<{ password: string }>(
+			"POST",
+			"/vault/generate-password",
+			input ?? {},
+			undefined,
+			options,
+		);
 	}
 
-	public getTotp(id: string, agentId?: string, options?: RequestOptions): Promise<VaultTotpOutput> {
-		return this.client.request<VaultTotpOutput>("GET", `/vault/totp/${id}`, undefined, agentId ? { agentId } : undefined, options);
+	public getTotp(
+		id: string,
+		agentId?: string,
+		options?: RequestOptions,
+	): Promise<VaultTotpOutput> {
+		return this.client.request<VaultTotpOutput>(
+			"GET",
+			`/vault/totp/${id}`,
+			undefined,
+			agentId ? { agentId } : undefined,
+			options,
+		);
 	}
 
-	public status(agentId?: string, options?: RequestOptions): Promise<VaultStatusOutput> {
-		return this.client.request<VaultStatusOutput>("GET", "/vault/status", undefined, agentId ? { agentId } : undefined, options);
+	/**
+	 * Ask a human for a credential the agent must never see. Returns a
+	 * token-gated fill URL the owner completes out-of-band; poll
+	 * `credentialRequestStatus` until FULFILLED, then use the credential
+	 * by reference (`useCredential`) — the plaintext is never returned.
+	 */
+	public credentialRequestCreate(
+		input: CreateVaultCredentialRequestInput,
+		options?: RequestOptions,
+	): Promise<VaultCredentialRequest> {
+		return this.client.request<VaultCredentialRequest>(
+			"POST",
+			"/vault/credential-requests",
+			input,
+			undefined,
+			options,
+		);
 	}
 
-	public sync(agentId?: string, options?: RequestOptions): Promise<{ success: true }> {
-		return this.client.request<{ success: true }>("POST", "/vault/sync", agentId ? { agentId } : {}, undefined, options);
+	public credentialRequestStatus(
+		requestId: string,
+		options?: RequestOptions,
+	): Promise<VaultCredentialRequestStatusOutput> {
+		return this.client.request<VaultCredentialRequestStatusOutput>(
+			"GET",
+			`/vault/credential-requests/${requestId}`,
+			undefined,
+			undefined,
+			options,
+		);
+	}
+
+	public credentialRequestCancel(
+		requestId: string,
+		options?: RequestOptions,
+	): Promise<CancelVaultCredentialRequestOutput> {
+		return this.client.request<CancelVaultCredentialRequestOutput>(
+			"POST",
+			`/vault/credential-requests/${requestId}/cancel`,
+			undefined,
+			undefined,
+			options,
+		);
+	}
+
+	public status(
+		agentId?: string,
+		options?: RequestOptions,
+	): Promise<VaultStatusOutput> {
+		return this.client.request<VaultStatusOutput>(
+			"GET",
+			"/vault/status",
+			undefined,
+			agentId ? { agentId } : undefined,
+			options,
+		);
+	}
+
+	public sync(
+		agentId?: string,
+		options?: RequestOptions,
+	): Promise<{ success: true }> {
+		return this.client.request<{ success: true }>(
+			"POST",
+			"/vault/sync",
+			agentId ? { agentId } : {},
+			undefined,
+			options,
+		);
 	}
 
 	// -----------------------------------------------------------------------
 	// Sharing
 	// -----------------------------------------------------------------------
 
-	public shareCredential(input: ShareCredentialInput, options?: RequestOptions): Promise<VaultShare> {
-		return this.client.request<VaultShare>("POST", "/vault/share", input, undefined, options);
+	public shareCredential(
+		input: ShareCredentialInput,
+		options?: RequestOptions,
+	): Promise<VaultShare> {
+		return this.client.request<VaultShare>(
+			"POST",
+			"/vault/share",
+			input,
+			undefined,
+			options,
+		);
 	}
 
 	public listShares(
@@ -121,23 +354,62 @@ export class VaultResource {
 		);
 	}
 
-	public async revokeShare(input: RevokeShareInput, options?: RequestOptions): Promise<void> {
-		await this.client.request<void>("POST", "/vault/share/revoke", input, undefined, options);
+	public async revokeShare(
+		input: RevokeShareInput,
+		options?: RequestOptions,
+	): Promise<void> {
+		await this.client.request<void>(
+			"POST",
+			"/vault/share/revoke",
+			input,
+			undefined,
+			options,
+		);
 	}
 
 	// -----------------------------------------------------------------------
 	// Ephemeral tokens
 	// -----------------------------------------------------------------------
 
-	public createToken(input: CreateVaultTokenInput, options?: RequestOptions): Promise<VaultTokenOutput> {
-		return this.client.request<VaultTokenOutput>("POST", "/vault/token", input, undefined, options);
+	public createToken(
+		input: CreateVaultTokenInput,
+		options?: RequestOptions,
+	): Promise<VaultTokenOutput> {
+		return this.client.request<VaultTokenOutput>(
+			"POST",
+			"/vault/token",
+			input,
+			undefined,
+			options,
+		);
 	}
 
-	public exchangeToken(token: string, options?: RequestOptions): Promise<VaultCredential> {
-		return this.client.request<VaultCredential>("POST", "/vault/token/exchange", { token }, undefined, options);
+	/**
+	 * Exchange a vault token for the PLAINTEXT credential, to inject into a
+	 * trusted client process (a CLI, the browser extension) — NEVER to read into
+	 * an LLM's context. The API gates this to injector credentials: it succeeds
+	 * only when the client is configured with a master key or a key carrying the
+	 * `vault:inject` scope; a plain agent key gets 403. For an agent to *use* a
+	 * secret without seeing it, call {@link useCredential} (the server-side
+	 * broker) instead.
+	 */
+	public exchangeTokenForInjection(
+		token: string,
+		options?: RequestOptions,
+	): Promise<VaultCredential> {
+		return this.client.request<VaultCredential>(
+			"POST",
+			"/vault/token/exchange",
+			{ token },
+			undefined,
+			options,
+		);
 	}
 
-	public revokeTokens(input: RevokeVaultTokensInput, options?: RequestOptions): Promise<{ success: boolean; revoked: number }> {
+	public revokeTokens(
+		input: RevokeVaultTokensInput,
+		options?: RequestOptions,
+	): Promise<{ success: boolean; revoked: number }> {
 		return this.client.request<{ success: boolean; revoked: number }>(
 			"POST",
 			"/vault/token/revoke",
@@ -147,7 +419,9 @@ export class VaultResource {
 		);
 	}
 
-	private toListQuery(params?: ListVaultCredentialsParams): Record<string, string> | undefined {
+	private toListQuery(
+		params?: ListVaultCredentialsParams,
+	): Record<string, string> | undefined {
 		if (!params) {
 			return undefined;
 		}
