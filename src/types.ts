@@ -76,11 +76,7 @@ export interface DateRange {
 export type Tier = "FREE" | "DEVELOPER" | "GROWTH" | "SCALE" | "ENTERPRISE";
 export type AgentStatus = "ACTIVE" | "SUSPENDED" | "DELETED";
 export type PhoneProvider = "TELNYX";
-export type TenDlcStatus =
-	| "PENDING"
-	| "REGISTERED"
-	| "REJECTED"
-	| "NOT_REQUIRED";
+export type TenDlcStatus = "PENDING" | "REGISTERED" | "REJECTED" | "NOT_REQUIRED";
 
 export interface CreateOrganizationInput {
 	name: string;
@@ -1352,18 +1348,8 @@ export interface AuditLogExportOutput {
 // ---------------------------------------------------------------------------
 
 export type ComplianceFramework = "SOC2" | "GDPR" | "PCI";
-export type ComplianceControlStatus =
-	| "not_started"
-	| "in_progress"
-	| "implemented"
-	| "verified"
-	| "failed";
-export type ComplianceReportType =
-	| "soc2_summary"
-	| "activity_report"
-	| "access_review"
-	| "audit_export"
-	| "gdpr_dsar";
+export type ComplianceControlStatus = "not_started" | "in_progress" | "implemented" | "verified" | "failed";
+export type ComplianceReportType = "soc2_summary" | "activity_report" | "access_review" | "audit_export" | "gdpr_dsar";
 export type DsarStatus = "pending" | "in_progress" | "completed" | "rejected";
 
 export interface ComplianceControlOutput {
@@ -1489,16 +1475,8 @@ export type AnomalyMetric =
 	| "unique_recipients";
 
 export type AnomalySeverity = "INFO" | "WARNING" | "CRITICAL";
-export type AnomalyAlertStatus =
-	| "TRIGGERED"
-	| "ACKNOWLEDGED"
-	| "RESOLVED"
-	| "FALSE_POSITIVE";
-export type AnomalyCondition =
-	| "zscore_gt"
-	| "rate_multiplier_gt"
-	| "absolute_gt"
-	| "time_violation";
+export type AnomalyAlertStatus = "TRIGGERED" | "ACKNOWLEDGED" | "RESOLVED" | "FALSE_POSITIVE";
+export type AnomalyCondition = "zscore_gt" | "rate_multiplier_gt" | "absolute_gt" | "time_violation";
 export type QuarantineAction = "NONE" | "SOFT" | "HARD";
 export type QuarantineLevel = "NONE" | "SOFT" | "HARD";
 export type BaselinePeriod = "hourly" | "daily";
