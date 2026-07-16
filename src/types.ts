@@ -1219,6 +1219,57 @@ export interface VerifiableCredential {
 	proof: Record<string, unknown>;
 }
 
+/**
+ * The credential types Anima issues. Platform verification events
+ * auto-issue `AnimaEmailVerified`/`AnimaOwnerBound` (email OTP),
+ * `AnimaPhoneVerified` (number provisioning), and `AnimaPaymentCapable`
+ * (paid Stripe checkout); those platform-reserved types (plus
+ * `AnimaKYBCompleted`) cannot be issued through the API — only the
+ * org-attestation types (`AnimaAddressVerified`, `AnimaTrustScore`) can.
+ */
+export type VerifiableCredentialType =
+	| "AnimaEmailVerified"
+	| "AnimaPhoneVerified"
+	| "AnimaAddressVerified"
+	| "AnimaKYBCompleted"
+	| "AnimaPaymentCapable"
+	| "AnimaOwnerBound"
+	| "AnimaTrustScore";
+
+/**
+ * A Verifiable Credential record as stored by the platform — the shape
+ * returned by `identity.listCredentials`, `identity.issueCredential`, and
+ * `identity.revokeCredential`. The W3C credential itself is the signed
+ * `jwtVc` string; the other fields are the platform's record around it.
+ */
+export interface VerifiableCredentialRecord {
+	id: string;
+	agentId: string;
+	orgId: string;
+	type: string;
+	/** The signed JWT-VC — pass to `identity.verifyCredential` to decode/verify. */
+	jwtVc: string;
+	issuerDid: string;
+	subjectDid: string;
+	issuedAt: string;
+	expiresAt: string | null;
+	revoked: boolean;
+	revokedAt: string | null;
+	revocationIndex: number | null;
+	metadata: Record<string, unknown> | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface IssueCredentialInput {
+	/** Credential type to issue (org-attestation types only; platform-reserved types 403). */
+	type: VerifiableCredentialType;
+	/** Additional claims for the credential subject (the subject id is always the agent's DID). */
+	claims?: Record<string, unknown>;
+	/** Optional credential lifetime in seconds (omit for non-expiring). */
+	expiresInSeconds?: number;
+}
+
 export interface VerifyCredentialOutput {
 	valid: boolean;
 	credential: VerifiableCredential | null;
