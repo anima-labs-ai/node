@@ -25,7 +25,7 @@ type MockWs = {
 	close: ReturnType<typeof mock>;
 };
 
-function makeMockWs(readyState = WebSocket.OPEN): MockWs {
+function makeMockWs(readyState: number = WebSocket.OPEN): MockWs {
 	const ws: MockWs = {
 		readyState,
 		sentMessages: [],
@@ -80,7 +80,7 @@ describe("VoiceConnection.speakStream", () => {
 		}
 	}
 
-	function makeConn(readyState = WebSocket.OPEN): { conn: TestVoiceConnection; ws: MockWs } {
+	function makeConn(readyState: number = WebSocket.OPEN): { conn: TestVoiceConnection; ws: MockWs } {
 		const mockWs = makeMockWs(readyState);
 		const connection = new TestVoiceConnection(mockWs);
 		return { conn: connection, ws: mockWs };

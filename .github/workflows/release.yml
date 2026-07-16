@@ -14,6 +14,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # A rebrand find-replace once mangled the code identifier
+      # `anima.emails.*` into a nonsense token ("useanima" + ".shs") and it
+      # shipped to npm inside README.md. Refuse to release if the token ever
+      # reappears. The pattern uses [.] so this workflow can't match itself.
+      - name: Lint — forbid rebrand-mangled identifier
+        run: |
+          if grep -rn --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git "useanima[.]shs" .; then
+            echo '::error::Found the rebrand mangle (anima.emails.* was find-replaced into a nonsense token). Fix before releasing.'
+            exit 1
+          fi
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest

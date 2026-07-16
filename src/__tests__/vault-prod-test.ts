@@ -149,7 +149,7 @@ await test("createToken(input)", async () => {
 
 await test("revokeTokens(input)", async () => {
 	// Create another token to revoke
-	const t = await anima.vault.createToken({
+	await anima.vault.createToken({
 		credentialId: credId,
 		scope: "autofill",
 	});

@@ -78,7 +78,7 @@ describe("PageIterator", () => {
 
 	test("handles many pages with one item each", async () => {
 		let page = 0;
-		const iter = new PageIterator<number>((cursor) => {
+		const iter = new PageIterator<number>((_cursor) => {
 			page++;
 			if (page <= 5) {
 				return Promise.resolve(makePage([page], `cursor_${page}`));
@@ -116,7 +116,7 @@ describe("PageIterator", () => {
 
 	test("propagates errors during iteration", async () => {
 		let calls = 0;
-		const iter = new PageIterator<number>((cursor) => {
+		const iter = new PageIterator<number>((_cursor) => {
 			calls++;
 			if (calls === 1) {
 				return Promise.resolve(makePage([1], "next"));

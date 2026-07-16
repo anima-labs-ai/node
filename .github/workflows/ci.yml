@@ -15,6 +15,15 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Same gate as release.yml, run at PR time so the mangle fails loud
+      # before it can merge. See release.yml for the backstory.
+      - name: Lint — forbid rebrand-mangled identifier
+        run: |
+          if grep -rn --exclude-dir=node_modules --exclude-dir=dist --exclude-dir=.git "useanima[.]shs" .; then
+            echo '::error::Found the rebrand mangle (anima.emails.* was find-replaced into a nonsense token). Fix it.'
+            exit 1
+          fi
+
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
