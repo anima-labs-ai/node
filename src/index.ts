@@ -5,6 +5,7 @@ import { DomainsResource } from "./resources/domains";
 import { EmailsResource } from "./resources/emails";
 import { EventsResource } from "./resources/events";
 import { IdentityResource } from "./resources/identity";
+import { InboxesResource } from "./resources/inboxes";
 import { MessagesResource } from "./resources/messages";
 import { OrganizationsResource } from "./resources/organizations";
 import { PhonesResource } from "./resources/phones";
@@ -34,6 +35,7 @@ export class Anima {
 	public readonly agents: AgentsResource;
 	public readonly messages: MessagesResource;
 	public readonly emails: EmailsResource;
+	public readonly inboxes: InboxesResource;
 	public readonly domains: DomainsResource;
 	public readonly identity: IdentityResource;
 	public readonly phones: PhonesResource;
@@ -68,6 +70,7 @@ export class Anima {
 		this.agents = new AgentsResource(this.client);
 		this.messages = new MessagesResource(this.client);
 		this.emails = new EmailsResource(this.client);
+		this.inboxes = new InboxesResource(this.client);
 		this.domains = new DomainsResource(this.client);
 		this.identity = new IdentityResource(this.client);
 		this.phones = new PhonesResource(this.client);

@@ -184,6 +184,35 @@ export type MessageStatus =
 	| "BLOCKED"
 	| "PENDING_APPROVAL";
 
+/**
+ * File attachment for outbound email. Provide exactly ONE of `content`
+ * (base64-encoded bytes inline) or `url` (the server fetches the file).
+ * Max 20 attachments per email, 25MB total after decode/fetch.
+ */
+export interface EmailAttachmentInput {
+	/**
+	 * Filename presented to the recipient. Inferred from the URL path when
+	 * `url` is used and this is omitted; falls back to "attachment".
+	 */
+	filename?: string;
+	/**
+	 * Content-ID for inline attachments referenced in the HTML body via
+	 * `cid:` URIs (e.g. set to "logo" and reference `<img src="cid:logo">`).
+	 * When present the attachment is `Content-Disposition: inline`;
+	 * when absent, `attachment`.
+	 */
+	contentId?: string;
+	/** MIME type. Auto-detected from the filename extension if omitted. */
+	contentType?: string;
+	/** Base64-encoded attachment bytes. Mutually exclusive with `url`. */
+	content?: string;
+	/**
+	 * Public URL the server fetches and attaches. Mutually exclusive with
+	 * `content`. URLs to private/loopback IPs are rejected (SSRF guard).
+	 */
+	url?: string;
+}
+
 export interface SendEmailInput {
 	agentId: string;
 	to: string[];
@@ -192,6 +221,12 @@ export interface SendEmailInput {
 	subject: string;
 	body: string;
 	bodyHtml?: string;
+	/** File attachments (max 20 per email, 25MB total). */
+	attachments?: EmailAttachmentInput[];
+	/** Message-ID of the email this is replying to (threads the reply). */
+	inReplyTo?: string;
+	/** Message-IDs forming the email thread chain (RFC `References`). */
+	references?: string[];
 	headers?: Record<string, string>;
 	metadata?: Record<string, unknown>;
 }
@@ -271,6 +306,48 @@ export interface AttachmentDownloadOutput {
 
 export interface EmailListParams extends PaginationInput {
 	agentId?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Inboxes
+// ---------------------------------------------------------------------------
+
+export interface CreateInboxInput {
+	/**
+	 * Local part of the inbox email address (letters, numbers, dots,
+	 * hyphens, underscores; normalized to lowercase). Auto-generated
+	 * when omitted.
+	 */
+	username?: string;
+	/** Domain for the inbox address; the default domain when omitted. */
+	domain?: string;
+	/** Human-readable display name (max 128 characters). */
+	displayName?: string;
+	/** ID of the agent to associate with this inbox. */
+	agentId?: string;
+}
+
+export interface UpdateInboxInput {
+	/** Updated display name (set to null to clear). */
+	displayName?: string | null;
+	/** Updated agent association (set to null to unlink). */
+	agentId?: string | null;
+}
+
+export interface InboxOutput {
+	id: string;
+	/** Full email address of the inbox. */
+	email: string;
+	domain: string;
+	localPart: string;
+	displayName: string | null;
+	agentId: string | null;
+	createdAt: string;
+}
+
+export interface InboxListParams extends PaginationInput {
+	/** Free-text search over inbox email and display name. */
+	query?: string;
 }
 
 export interface AddDomainInput {

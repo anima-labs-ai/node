@@ -1,0 +1,16 @@
+{
+	// Typechecks src/__tests__ (excluded from the publishing config in
+	// tsconfig.json). Tests execute under Bun — ESM semantics, top-level
+	// await, extensionless relative imports — so they are checked with
+	// bundler-style resolution instead of the strict Node16 rules the
+	// shipped source must satisfy. Run via `bun run typecheck`.
+	"extends": "./tsconfig.json",
+	"compilerOptions": {
+		"module": "ESNext",
+		"moduleResolution": "bundler",
+		"noEmit": true,
+		"rootDir": "src"
+	},
+	"include": ["src"],
+	"exclude": ["node_modules", "dist"]
+}

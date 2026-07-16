@@ -115,6 +115,29 @@ const email = await anima.messages.sendEmail({
   bodyHtml: "<h1>Hello</h1>",
 });
 
+// Send with attachments — each entry provides EITHER base64 `content`
+// or a public `url` the server fetches (max 20 files, 25MB total)
+const withAttachment = await anima.messages.sendEmail({
+  agentId: "agent_id",
+  to: ["recipient@example.com"],
+  subject: "Report attached",
+  body: "See the attached report.",
+  attachments: [
+    { filename: "report.pdf", contentType: "application/pdf", content: "JVBERi0xLjQK..." },
+    { url: "https://files.example.com/big.pdf", filename: "big.pdf" },
+  ],
+});
+
+// Reply in-thread by referencing Message-IDs
+const reply = await anima.messages.sendEmail({
+  agentId: "agent_id",
+  to: ["recipient@example.com"],
+  subject: "Re: Hello",
+  body: "Replying in the same thread.",
+  inReplyTo: "<message-id@agents.useanima.sh>",
+  references: ["<message-id@agents.useanima.sh>"],
+});
+
 // Send an SMS
 const sms = await anima.messages.sendSms({
   agentId: "agent_id",
@@ -152,15 +175,34 @@ const { url } = await anima.messages.getAttachmentUrl("attachment_id");
 
 ```ts
 // List email messages
-const emails = await useanima.shs.list({ agentId: "agent_id", limit: 20 });
+const emails = await anima.emails.list({ agentId: "agent_id", limit: 20 });
 
 // Attachment helpers
-const uploaded = await useanima.shs.uploadAttachment("msg_id", {
+const uploaded = await anima.emails.uploadAttachment("msg_id", {
   filename: "doc.pdf",
   mimeType: "application/pdf",
   sizeBytes: 2048,
 });
-const download = await useanima.shs.getAttachmentUrl("attachment_id");
+const download = await anima.emails.getAttachmentUrl("attachment_id");
+```
+
+### Inboxes
+
+```ts
+// Create an inbox — all fields optional; create() alone provisions a
+// generated address on the default domain
+const inbox = await anima.inboxes.create({
+  username: "support",           // local part → support@<domain>
+  displayName: "Support",
+  agentId: "agent_id",           // optional — associate with an agent
+});
+console.log(inbox.email);
+
+// Get, list, update, delete
+const fetched = await anima.inboxes.get("inbox_id");
+const inboxes = await anima.inboxes.list({ query: "support", limit: 20 });
+await anima.inboxes.update("inbox_id", { displayName: "Sales" });
+await anima.inboxes.delete("inbox_id");
 ```
 
 ### Domains

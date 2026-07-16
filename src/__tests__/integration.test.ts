@@ -72,15 +72,24 @@ mock.module("node:dns/promises", () => ({
 const apiServerPath =
 	process.env.ANIMA_API_SERVER_PATH ?? "../../../anima/apps/api/src/server";
 
-let createServer:
-	| ((typeof import("../../../anima/apps/api/src/server"))["createServer"])
-	| null = null;
+// Structural stand-in for the monorepo's `createServer` (a Fastify factory).
+// Typed structurally — NOT via `typeof import("…/anima/…")` — because the
+// monorepo isn't on disk in CI and tests are typechecked there
+// (tsconfig.tests.json); a path-based type import would fail compilation.
+interface AnimaApiServer {
+	listen(opts: { port: number }): Promise<unknown>;
+	close(): Promise<unknown>;
+	server: { address(): { port: number } | string | null };
+}
+type CreateApiServer = () => Promise<AnimaApiServer>;
+
+let createServer: CreateApiServer | null = null;
 let loadError: unknown = null;
 
 try {
 	const serverModule = (await import(
 		`${apiServerPath}?sdk-int=${Math.random()}`
-	)) as typeof import("../../../anima/apps/api/src/server");
+	)) as { createServer: CreateApiServer };
 	createServer = serverModule.createServer;
 } catch (err) {
 	loadError = err;

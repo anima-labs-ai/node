@@ -5,6 +5,7 @@ import { A2AResource } from "../resources/a2a";
 import { AgentsResource } from "../resources/agents";
 import { DomainsResource } from "../resources/domains";
 import { EmailsResource } from "../resources/emails";
+import { InboxesResource } from "../resources/inboxes";
 import { MessagesResource } from "../resources/messages";
 import { OrganizationsResource } from "../resources/organizations";
 import { PhonesResource } from "../resources/phones";
@@ -395,6 +396,90 @@ describe("resource methods", () => {
 			"GET",
 			"/attachments/att_1/download",
 			undefined,
+			undefined,
+			undefined,
+		);
+	});
+
+	test("inboxes resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new InboxesResource(client);
+
+		await resource.create({ username: "support", displayName: "Support", agentId: "agent_1" });
+		await resource.get("inbox_1");
+		await resource.list({ query: "support", limit: 10, cursor: "c1" });
+		await resource.update("inbox_1", { displayName: "Sales", agentId: null });
+		await resource.delete("inbox_1");
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/inboxes",
+			{ username: "support", displayName: "Support", agentId: "agent_1" },
+			undefined,
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/inboxes/inbox_1",
+			undefined,
+			undefined,
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/inboxes", undefined, {
+			query: "support",
+			limit: "10",
+			cursor: "c1",
+		});
+		expect(requestMock).toHaveBeenCalledWith(
+			"PATCH",
+			"/inboxes/inbox_1",
+			{ id: "inbox_1", displayName: "Sales", agentId: null },
+			undefined,
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"DELETE",
+			"/inboxes/inbox_1",
+			undefined,
+			undefined,
+			undefined,
+		);
+	});
+
+	test("inboxes create() with no arguments sends an empty body (auto-provision)", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new InboxesResource(client);
+
+		await resource.create();
+
+		expect(requestMock).toHaveBeenCalledWith("POST", "/inboxes", {}, undefined, undefined);
+	});
+
+	test("sendEmail passes attachments and threading fields through to the wire", async () => {
+		// Founder checklist #7: attachments (and inReplyTo/references) must not
+		// be dropped between the caller and the HTTP body. This fails if the
+		// SDK ever narrows or strips the send payload.
+		const { client, requestMock } = createMockClient();
+		const resource = new MessagesResource(client);
+
+		const input = {
+			agentId: "agent_1",
+			to: ["a@x.com"],
+			subject: "Report attached",
+			body: "See attachment",
+			attachments: [
+				{ filename: "report.pdf", contentType: "application/pdf", content: "JVBERi0=" },
+				{ url: "https://files.example.com/big.pdf", filename: "big.pdf" },
+			],
+			inReplyTo: "<msg-1@agents.useanima.sh>",
+			references: ["<msg-0@agents.useanima.sh>", "<msg-1@agents.useanima.sh>"],
+		};
+		await resource.sendEmail(input);
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/messages/email",
+			input,
 			undefined,
 			undefined,
 		);
