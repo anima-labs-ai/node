@@ -114,7 +114,7 @@ if (intMode === "real" && !createServer) {
 	);
 }
 
-import { Anima, NotFoundError, ValidationError } from "../index";
+import { Anima, AuthError, NotFoundError, ValidationError } from "../index";
 import { startMockApiServer, type MockApiServer } from "./mock-api-server";
 
 const mode: "real" | "mock" = createServer ? "real" : "mock";
@@ -348,6 +348,58 @@ describe(`sdk integration flow (${mode} server)`, () => {
 			// And the off-topic standup message must not outrank the match.
 			expect(top.content).not.toContain("standup");
 		}
+
+		await am.agents.delete(agent.id);
+		await am.organizations.delete(org.id);
+	}, 30_000);
+
+	test("credential lifecycle: issue → bare-array list → revoke; platform-reserved types 403", async () => {
+		const slug = `sdk-vc-${Date.now()}`;
+
+		const bootstrap = new Anima({
+			apiKey: "mk_bootstrap_dummy",
+			baseUrl,
+			maxRetries: 0,
+		});
+		const org = await bootstrap.organizations.create({
+			name: "SDK Credentials Org",
+			slug,
+		});
+		const am = new Anima({ apiKey: org.masterKey, baseUrl, maxRetries: 0 });
+		const agent = await am.agents.create({
+			orgId: org.id,
+			name: "Credentials Agent",
+			slug: `vc-agent-${Date.now()}`,
+		});
+
+		// Platform-reserved types are auto-issued by their verification events —
+		// issuing one through the API must fail loudly, not mint a fake
+		// verification signal.
+		await expect(
+			am.identity.issueCredential(agent.id, { type: "AnimaEmailVerified" }),
+		).rejects.toThrow(AuthError);
+
+		const issued = await am.identity.issueCredential(agent.id, {
+			type: "AnimaAddressVerified",
+			claims: { addressLine1: "1 Test St" },
+		});
+		expect(issued.id).toBeDefined();
+		expect(issued.agentId).toBe(agent.id);
+		expect(issued.type).toBe("AnimaAddressVerified");
+		expect(issued.jwtVc.length).toBeGreaterThan(0);
+		expect(issued.revoked).toBe(false);
+
+		// The list endpoint returns a BARE array, not a paginated {items}
+		// envelope — the SDK once typed it as {items} and every caller read
+		// `undefined`. This assertion keeps that envelope lie dead.
+		const listed = await am.identity.listCredentials(agent.id);
+		expect(Array.isArray(listed)).toBe(true);
+		expect(listed.map((c) => c.id)).toContain(issued.id);
+
+		const revoked = await am.identity.revokeCredential(agent.id, issued.id);
+		expect(revoked.id).toBe(issued.id);
+		expect(revoked.revoked).toBe(true);
+		expect(revoked.revokedAt).not.toBeNull();
 
 		await am.agents.delete(agent.id);
 		await am.organizations.delete(org.id);

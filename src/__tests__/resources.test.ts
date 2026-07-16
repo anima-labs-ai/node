@@ -6,6 +6,7 @@ import { AgentsResource } from "../resources/agents";
 import { DomainsResource } from "../resources/domains";
 import { DraftsResource } from "../resources/drafts";
 import { EmailsResource } from "../resources/emails";
+import { IdentityResource } from "../resources/identity";
 import { InboxesResource } from "../resources/inboxes";
 import { MessagesResource } from "../resources/messages";
 import { OrganizationsResource } from "../resources/organizations";
@@ -930,6 +931,63 @@ describe("resource methods", () => {
 			"/orgs/org_1/security/events",
 			undefined,
 			{ orgId: "org_1", type: "BLOCKED", limit: "10" },
+			undefined,
+		);
+	});
+
+	test("identity resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new IdentityResource(client);
+
+		await resource.getDid("agent_1");
+		await resource.resolveDid("did:web:agents.useanima.sh:org:agent");
+		await resource.listCredentials("agent_1");
+		await resource.issueCredential("agent_1", {
+			type: "AnimaTrustScore",
+			claims: { score: 80 },
+			expiresInSeconds: 3600,
+		});
+		await resource.revokeCredential("agent_1", "vc_1");
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/agents/agent_1/did",
+			undefined,
+			undefined,
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			// DIDs contain ":" — the path segment must be URI-encoded.
+			"/identity/did/did%3Aweb%3Aagents.useanima.sh%3Aorg%3Aagent",
+			undefined,
+			undefined,
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/agents/agent_1/credentials",
+			undefined,
+			undefined,
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/agents/agent_1/credentials",
+			{
+				agentId: "agent_1",
+				type: "AnimaTrustScore",
+				claims: { score: 80 },
+				expiresInSeconds: 3600,
+			},
+			undefined,
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/agents/agent_1/credentials/vc_1/revoke",
+			undefined,
+			undefined,
 			undefined,
 		);
 	});

@@ -17,7 +17,12 @@
  * - draft send converts the draft into a Message and deletes the draft
  *   (get-after-send must 404), mirroring the contract's documented
  *   send-and-delete semantics,
- * - draft send validates to/subject/body like the real handler (400).
+ * - draft send validates to/subject/body like the real handler (400),
+ * - credential listing returns a BARE array (the endpoint is not
+ *   paginated — the SDK once typed it as `{items}` and `.items` was
+ *   silently undefined for every caller),
+ * - credential issuance 403s platform-reserved types like the real
+ *   handler (only org-attestation types are API-issuable).
  *
  * Runs under Bun (the test runtime) via Bun.serve.
  */
@@ -59,6 +64,18 @@ export function startMockApiServer(): MockApiServer {
 	const agents = new Map<string, JsonRecord>();
 	const messages = new Map<string, JsonRecord>();
 	const drafts = new Map<string, JsonRecord>();
+	const credentials = new Map<string, JsonRecord>();
+
+	// Mirrors CREDENTIAL_TYPES in the contract: platform events auto-issue
+	// the reserved types; only the org-attestation types are API-issuable.
+	const API_ISSUABLE_CREDENTIAL_TYPES = new Set(["AnimaAddressVerified", "AnimaTrustScore"]);
+	const PLATFORM_RESERVED_CREDENTIAL_TYPES = new Set([
+		"AnimaEmailVerified",
+		"AnimaPhoneVerified",
+		"AnimaKYBCompleted",
+		"AnimaPaymentCapable",
+		"AnimaOwnerBound",
+	]);
 
 	function createMessageFromEmail(input: JsonRecord): JsonRecord {
 		const id = makeId("msg");
@@ -168,6 +185,69 @@ export function startMockApiServer(): MockApiServer {
 				agents.delete(agent.id as string);
 				return json(agent);
 			}
+		}
+
+		// --- Verifiable credentials -------------------------------------------
+		match = path.match(/^\/agents\/([^/]+)\/credentials$/);
+		if (match) {
+			const agentId = match[1] as string;
+			const agent = agents.get(agentId);
+			if (!agent) return errorResponse(404, "NOT_FOUND", "Agent not found");
+			if (method === "GET") {
+				// Bare array on purpose — the endpoint is NOT paginated. Wrapping
+				// this in { items } is exactly the envelope lie the SDK shipped.
+				const items = [...credentials.values()]
+					.filter((c) => c.agentId === agentId)
+					.reverse();
+				return json(items);
+			}
+			if (method === "POST") {
+				const type = String(body.type ?? "");
+				if (PLATFORM_RESERVED_CREDENTIAL_TYPES.has(type)) {
+					return errorResponse(
+						403,
+						"FORBIDDEN",
+						`${type} is platform-reserved — it is auto-issued by its verification event`,
+					);
+				}
+				if (!API_ISSUABLE_CREDENTIAL_TYPES.has(type)) {
+					return errorResponse(400, "VALIDATION_ERROR", `Unknown credential type: ${type}`);
+				}
+				const id = makeId("vc");
+				const issuedAt = nowIso();
+				const expiresInSeconds = body.expiresInSeconds as number | undefined;
+				const credential: JsonRecord = {
+					id,
+					agentId,
+					orgId: (agent.orgId as string | undefined) ?? makeId("org"),
+					type,
+					jwtVc: `mock.jwt.${id}`,
+					issuerDid: "did:web:agents.useanima.sh",
+					subjectDid: `did:web:agents.useanima.sh:mock:${agentId}`,
+					issuedAt,
+					expiresAt: expiresInSeconds ? new Date(Date.now() + expiresInSeconds * 1000).toISOString() : null,
+					revoked: false,
+					revokedAt: null,
+					revocationIndex: null,
+					metadata: { source: "api", claims: (body.claims as JsonRecord | undefined) ?? {} },
+					createdAt: issuedAt,
+					updatedAt: issuedAt,
+				};
+				credentials.set(id, credential);
+				return json(credential);
+			}
+		}
+		match = path.match(/^\/agents\/([^/]+)\/credentials\/([^/]+)\/revoke$/);
+		if (match && method === "POST") {
+			const credential = credentials.get(match[2] as string);
+			if (!credential || credential.agentId !== (match[1] as string)) {
+				return errorResponse(404, "NOT_FOUND", "Credential not found");
+			}
+			credential.revoked = true;
+			credential.revokedAt = nowIso();
+			credential.revocationIndex = 0;
+			credential.updatedAt = nowIso();
+			return json(credential);
 		}
 
 		// --- Messages ---------------------------------------------------------

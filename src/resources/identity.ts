@@ -2,8 +2,9 @@ import type { RequestClient } from "../client";
 import type {
 	DidDocument,
 	DidRotateOutput,
+	IssueCredentialInput,
 	RequestOptions,
-	VerifiableCredential,
+	VerifiableCredentialRecord,
 	VerifyCredentialOutput,
 	AgentCardOutput,
 } from "../types";
@@ -23,8 +24,50 @@ export class IdentityResource {
 		return this.client.request<DidRotateOutput>("POST", `/agents/${agentId}/did/rotate`, undefined, undefined, options);
 	}
 
-	public listCredentials(agentId: string, options?: RequestOptions): Promise<{ items: VerifiableCredential[] }> {
-		return this.client.request<{ items: VerifiableCredential[] }>("GET", `/agents/${agentId}/credentials`, undefined, undefined, options);
+	/**
+	 * List an agent's verifiable credentials. Returns a bare array (the
+	 * endpoint is not paginated), newest first.
+	 */
+	public listCredentials(agentId: string, options?: RequestOptions): Promise<VerifiableCredentialRecord[]> {
+		return this.client.request<VerifiableCredentialRecord[]>("GET", `/agents/${agentId}/credentials`, undefined, undefined, options);
+	}
+
+	/**
+	 * Issue a verifiable credential to an agent (master key). Only the
+	 * org-attestation types (`AnimaAddressVerified`, `AnimaTrustScore`) can
+	 * be issued here; platform-reserved types (email/phone/payment/KYB/owner
+	 * verification) are auto-issued by their platform events and return 403.
+	 */
+	public issueCredential(
+		agentId: string,
+		input: IssueCredentialInput,
+		options?: RequestOptions,
+	): Promise<VerifiableCredentialRecord> {
+		// agentId last: the path-derived value must win over any stray
+		// `agentId` smuggled in via a non-literal `input` object.
+		return this.client.request<VerifiableCredentialRecord>("POST", `/agents/${agentId}/credentials`, {
+			...input,
+			agentId,
+		}, undefined, options);
+	}
+
+	/**
+	 * Revoke a previously issued credential (master key). Resolves to the
+	 * updated record with `revoked: true`; verification of its `jwtVc` fails
+	 * from then on.
+	 */
+	public revokeCredential(
+		agentId: string,
+		vcId: string,
+		options?: RequestOptions,
+	): Promise<VerifiableCredentialRecord> {
+		return this.client.request<VerifiableCredentialRecord>(
+			"POST",
+			`/agents/${agentId}/credentials/${vcId}/revoke`,
+			undefined,
+			undefined,
+			options,
+		);
 	}
 
 	public verifyCredential(jwtVc: string, options?: RequestOptions): Promise<VerifyCredentialOutput> {
