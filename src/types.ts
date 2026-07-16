@@ -293,6 +293,36 @@ export interface MessageSearchParams {
 	pagination?: PaginationInput;
 }
 
+/** Optional filters for `messages.semanticSearch()`. */
+export interface SemanticSearchParams {
+	/** Restrict results to a single agent. Agent-scoped keys are always scoped to their own agent. */
+	agentId?: string;
+	/** Maximum number of results (1-50, server default 10). */
+	limit?: number;
+	/** Minimum cosine-similarity score to include (0-1, server default 0.7). */
+	threshold?: number;
+}
+
+/** A message matched by semantic (embedding) search. */
+export interface SemanticSearchResult {
+	id: string;
+	/** Message content text (the body the embedding was computed over). */
+	content: string;
+	/** Cosine similarity between the query and the message, 0-1 (higher = closer). */
+	similarity: number;
+	/** Communication channel, e.g. "EMAIL" or "SMS" (string per the API contract). */
+	channel: string;
+	/** Message direction, "INBOUND" or "OUTBOUND" (string per the API contract). */
+	direction: string;
+	createdAt: string;
+	agentId: string;
+}
+
+export interface SemanticSearchOutput {
+	/** Messages ranked by semantic similarity, best match first. */
+	results: SemanticSearchResult[];
+}
+
 export interface UploadAttachmentInput {
 	filename: string;
 	mimeType: string;
@@ -305,6 +335,69 @@ export interface AttachmentDownloadOutput {
 }
 
 export interface EmailListParams extends PaginationInput {
+	agentId?: string;
+}
+
+// ---------------------------------------------------------------------------
+// Email drafts
+// ---------------------------------------------------------------------------
+
+/**
+ * Composed-but-not-sent email owned by an agent. Distinct from a Message:
+ * drafts can be incomplete (no `to`, no `subject`) and have no
+ * threadId/status/delivery. `drafts.send()` converts a draft into a
+ * Message and deletes the draft row atomically.
+ */
+export interface EmailDraftOutput {
+	id: string;
+	agentId: string;
+	orgId: string;
+	/**
+	 * EmailIdentity used as the sender, or null to use the agent's primary
+	 * identity at send time.
+	 */
+	fromIdentityId: string | null;
+	to: string[];
+	cc: string[];
+	bcc: string[];
+	/** Subject line, or null if not yet written. */
+	subject: string | null;
+	/** Plain-text body, or null if not yet written. */
+	body: string | null;
+	bodyHtml: string | null;
+	/** Optional In-Reply-To Message-ID applied for threading on send. */
+	inReplyTo: string | null;
+	/** Optional References Message-ID chain applied for threading on send. */
+	references: string[];
+	metadata: Record<string, unknown> | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface CreateEmailDraftInput {
+	/** Owning agent ID. */
+	agentId: string;
+	/**
+	 * Optional EmailIdentity ID to send from. Must belong to this agent and
+	 * be verified.
+	 */
+	fromIdentityId?: string;
+	/** Recipient email addresses (may be empty for an incomplete draft). */
+	to?: string[];
+	cc?: string[];
+	bcc?: string[];
+	subject?: string;
+	body?: string;
+	bodyHtml?: string;
+	/** Optional In-Reply-To header applied for threading on send. */
+	inReplyTo?: string;
+	/** Optional References chain applied for threading on send. */
+	references?: string[];
+	metadata?: Record<string, unknown>;
+}
+
+export interface EmailDraftListParams extends PaginationInput {
+	/** Filter drafts by owning agent ID. */
 	agentId?: string;
 }
 
