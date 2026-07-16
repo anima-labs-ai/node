@@ -2,6 +2,7 @@ import { AnimaClient } from "./client";
 import { AddressesResource } from "./resources/addresses";
 import { AgentsResource } from "./resources/agents";
 import { DomainsResource } from "./resources/domains";
+import { DraftsResource } from "./resources/drafts";
 import { EmailsResource } from "./resources/emails";
 import { EventsResource } from "./resources/events";
 import { IdentityResource } from "./resources/identity";
@@ -35,6 +36,7 @@ export class Anima {
 	public readonly agents: AgentsResource;
 	public readonly messages: MessagesResource;
 	public readonly emails: EmailsResource;
+	public readonly drafts: DraftsResource;
 	public readonly inboxes: InboxesResource;
 	public readonly domains: DomainsResource;
 	public readonly identity: IdentityResource;
@@ -70,6 +72,7 @@ export class Anima {
 		this.agents = new AgentsResource(this.client);
 		this.messages = new MessagesResource(this.client);
 		this.emails = new EmailsResource(this.client);
+		this.drafts = new DraftsResource(this.client);
 		this.inboxes = new InboxesResource(this.client);
 		this.domains = new DomainsResource(this.client);
 		this.identity = new IdentityResource(this.client);

@@ -56,19 +56,28 @@ mock.module("node:dns/promises", () => ({
 	resolve6: mock(async () => [] as string[]),
 }));
 
-// This integration test boots the Anima API server in-process and runs a
-// real SDK call through it. That requires the API monorepo checked out on
-// disk + its deps installed + a local Postgres. We keep this test out of
-// `npm test` (see package.json scripts) and make it opt-in for local dev.
+// This suite runs the SDK against a real HTTP server in one of two modes:
 //
-// Path resolution: the SDK ships as its own repo, but in dev we typically
-// sit next to the anima monorepo, so the default path walks up from
-// `node/src/__tests__/` to `agenticmail/anima/apps/api/src/server`. Override
-// with ANIMA_API_SERVER_PATH when you've got a different layout.
+// - "real": boots the Anima API monorepo server in-process. Requires the
+//   monorepo checked out on disk + its deps installed + a local Postgres.
+//   Path resolution: the SDK ships as its own repo, but in dev we typically
+//   sit next to the anima monorepo, so the default path walks up from
+//   `node/src/__tests__/` to `anima/apps/api/src/server`. Override with
+//   ANIMA_API_SERVER_PATH for a different layout.
 //
-// We use a dynamic import + try/catch so a missing server module just
-// skips the suite instead of crashing the whole file load (which would
-// also take out the bun test runner's ability to report anything).
+// - "mock": an in-process stand-in (see mock-api-server.ts) implementing
+//   the endpoints this suite exercises, with the API's envelope shapes,
+//   /v1-only routing, and draft send-and-delete semantics.
+//
+// Mode selection via ANIMA_SDK_INT_MODE:
+//   "real" — require the monorepo server; FAIL if it can't load.
+//   "mock" — always use the mock (don't even try the monorepo).
+//   unset  — auto: real when loadable, mock otherwise. CI takes the mock
+//            path (no monorepo checkout there), so this suite always runs
+//            in CI instead of silently skipping — a suite that only ever
+//            skipped is how SDK send paths went uncovered for months.
+const intMode = process.env.ANIMA_SDK_INT_MODE ?? "auto";
+
 const apiServerPath =
 	process.env.ANIMA_API_SERVER_PATH ?? "../../../anima/apps/api/src/server";
 
@@ -86,51 +95,68 @@ type CreateApiServer = () => Promise<AnimaApiServer>;
 let createServer: CreateApiServer | null = null;
 let loadError: unknown = null;
 
-try {
-	const serverModule = (await import(
-		`${apiServerPath}?sdk-int=${Math.random()}`
-	)) as { createServer: CreateApiServer };
-	createServer = serverModule.createServer;
-} catch (err) {
-	loadError = err;
+if (intMode !== "mock") {
+	try {
+		const serverModule = (await import(
+			`${apiServerPath}?sdk-int=${Math.random()}`
+		)) as { createServer: CreateApiServer };
+		createServer = serverModule.createServer;
+	} catch (err) {
+		loadError = err;
+	}
 }
 
-import { Anima } from "../index";
-
-const describeIntegration = createServer ? describe : describe.skip;
-
-if (!createServer) {
-	// eslint-disable-next-line no-console
-	console.warn(
-		`[sdk integration] Skipping suite — couldn't load API server from "${apiServerPath}".`,
-		`Set ANIMA_API_SERVER_PATH to the path of anima/apps/api/src/server to run.`,
-		`Original error: ${loadError instanceof Error ? loadError.message : String(loadError)}`,
+if (intMode === "real" && !createServer) {
+	throw new Error(
+		`ANIMA_SDK_INT_MODE=real but the API server could not be loaded from "${apiServerPath}". ` +
+			`Set ANIMA_API_SERVER_PATH to the path of anima/apps/api/src/server. ` +
+			`Original error: ${loadError instanceof Error ? loadError.message : String(loadError)}`,
 	);
 }
 
-describeIntegration("sdk integration flow", () => {
-	let app: Awaited<ReturnType<NonNullable<typeof createServer>>>;
+import { Anima, NotFoundError, ValidationError } from "../index";
+import { startMockApiServer, type MockApiServer } from "./mock-api-server";
+
+const mode: "real" | "mock" = createServer ? "real" : "mock";
+
+if (mode === "mock" && intMode === "auto") {
+	// eslint-disable-next-line no-console
+	console.info(
+		`[sdk integration] Anima API server not loadable from "${apiServerPath}" — running against the in-process mock. ` +
+			`Set ANIMA_SDK_INT_MODE=real (plus ANIMA_API_SERVER_PATH if needed) to force the real server.`,
+	);
+}
+
+describe(`sdk integration flow (${mode} server)`, () => {
+	let app: AnimaApiServer | null = null;
+	let mockServer: MockApiServer | null = null;
 	let baseUrl: string;
 
 	beforeAll(async () => {
-		if (!createServer) throw new Error("createServer not loaded");
-		app = await createServer();
-		await app.listen({ port: 0 });
-		const addr = app.server.address();
-		if (!addr || typeof addr === "string") {
-			throw new Error("Failed to get server address");
+		if (mode === "real") {
+			if (!createServer) throw new Error("createServer not loaded");
+			app = await createServer();
+			await app.listen({ port: 0 });
+			const addr = app.server.address();
+			if (!addr || typeof addr === "string") {
+				throw new Error("Failed to get server address");
+			}
+			// Routes used to sit under /api; that prefix was removed in the oRPC
+			// refactor (see anima commit 808386f). The baseUrl is now the naked
+			// server root — the SDK's client builder no longer prepends /api
+			// either, so both sides agree.
+			baseUrl = `http://localhost:${addr.port}`;
+		} else {
+			mockServer = startMockApiServer();
+			baseUrl = mockServer.url;
 		}
-		// Routes used to sit under /api; that prefix was removed in the oRPC
-		// refactor (see anima commit 808386f). The baseUrl is now the naked
-		// server root — the SDK's client builder no longer prepends /api
-		// either, so both sides agree.
-		baseUrl = `http://localhost:${addr.port}`;
 	}, 30_000);
 
 	afterAll(async () => {
 		if (app) {
 			await app.close();
 		}
+		mockServer?.stop();
 	});
 
 	test("full lifecycle: create org → agent → send email → list → cleanup", async () => {
@@ -196,6 +222,132 @@ describeIntegration("sdk integration flow", () => {
 
 		const agents = await am.agents.list({ orgId: org.id });
 		expect(agents.items.length).toBeGreaterThanOrEqual(1);
+
+		await am.agents.delete(agent.id);
+		await am.organizations.delete(org.id);
+	}, 30_000);
+
+	test("drafts lifecycle: send converts the draft into a Message and deletes it", async () => {
+		const slug = `sdk-drafts-${Date.now()}`;
+
+		const bootstrap = new Anima({
+			apiKey: "mk_bootstrap_dummy",
+			baseUrl,
+			maxRetries: 0,
+		});
+		const org = await bootstrap.organizations.create({
+			name: "SDK Drafts Org",
+			slug,
+		});
+		const am = new Anima({ apiKey: org.masterKey, baseUrl, maxRetries: 0 });
+		const agent = await am.agents.create({
+			orgId: org.id,
+			name: "Drafts Agent",
+			slug: `drafts-agent-${Date.now()}`,
+		});
+
+		// Drafts may be incomplete — but sending one must fail LOUDLY, not
+		// silently drop the email.
+		const incomplete = await am.drafts.create({
+			agentId: agent.id,
+			subject: "Quarterly report",
+			body: "Numbers attached.",
+		});
+		expect(incomplete.id).toBeDefined();
+		expect(incomplete.to).toEqual([]);
+		expect(incomplete.subject).toBe("Quarterly report");
+		await expect(am.drafts.send(incomplete.id)).rejects.toThrow(ValidationError);
+		// A failed send keeps the draft so the caller can fix and retry.
+		const survived = await am.drafts.get(incomplete.id);
+		expect(survived.id).toBe(incomplete.id);
+
+		const complete = await am.drafts.create({
+			agentId: agent.id,
+			to: ["counterparty@example.com"],
+			subject: "Quarterly report",
+			body: "Numbers attached.",
+		});
+
+		const listed = await am.drafts.list({ agentId: agent.id, limit: 10 });
+		const listedIds = listed.items.map((d) => d.id);
+		expect(listedIds).toContain(incomplete.id);
+		expect(listedIds).toContain(complete.id);
+
+		// send: the draft becomes a real outbound EMAIL Message…
+		const sent = await am.drafts.send(complete.id);
+		expect(sent.channel).toBe("EMAIL");
+		expect(sent.direction).toBe("OUTBOUND");
+		expect(sent.status).toBe("SENT");
+		expect(sent.subject).toBe("Quarterly report");
+		expect(sent.agentId).toBe(agent.id);
+
+		// …and the draft row is gone (send-and-delete semantics).
+		await expect(am.drafts.get(complete.id)).rejects.toThrow(NotFoundError);
+
+		// delete without sending returns the deleted draft, then 404s.
+		const deleted = await am.drafts.delete(incomplete.id);
+		expect(deleted.id).toBe(incomplete.id);
+		await expect(am.drafts.get(incomplete.id)).rejects.toThrow(NotFoundError);
+
+		await am.agents.delete(agent.id);
+		await am.organizations.delete(org.id);
+	}, 30_000);
+
+	test("semanticSearch returns the ranked-results envelope from /messages/search/semantic", async () => {
+		const slug = `sdk-sem-${Date.now()}`;
+
+		const bootstrap = new Anima({
+			apiKey: "mk_bootstrap_dummy",
+			baseUrl,
+			maxRetries: 0,
+		});
+		const org = await bootstrap.organizations.create({
+			name: "SDK Semantic Org",
+			slug,
+		});
+		const am = new Anima({ apiKey: org.masterKey, baseUrl, maxRetries: 0 });
+		const agent = await am.agents.create({
+			orgId: org.id,
+			name: "Semantic Agent",
+			slug: `sem-agent-${Date.now()}`,
+		});
+
+		await am.messages.sendEmail({
+			agentId: agent.id,
+			to: ["a@example.com"],
+			subject: "Invoice",
+			body: "The crocodile invoice for July is overdue",
+		});
+		await am.messages.sendEmail({
+			agentId: agent.id,
+			to: ["b@example.com"],
+			subject: "Standup",
+			body: "Daily standup moved to 10am",
+		});
+
+		const out = await am.messages.semanticSearch("crocodile invoice", {
+			agentId: agent.id,
+			limit: 5,
+		});
+
+		// The envelope shape is the SDK-owned part and holds in both modes.
+		expect(Array.isArray(out.results)).toBe(true);
+
+		if (mode === "mock") {
+			// Result *content* is only deterministic against the mock — in real
+			// mode it depends on an embedding provider being configured (absent
+			// locally, the server legitimately returns zero results).
+			expect(out.results.length).toBeGreaterThanOrEqual(1);
+			const top = out.results[0];
+			if (!top) throw new Error("expected a top result");
+			expect(top.content).toContain("crocodile");
+			expect(top.similarity).toBeGreaterThan(0.7);
+			expect(top.agentId).toBe(agent.id);
+			expect(top.channel).toBe("EMAIL");
+			expect(top.direction).toBe("OUTBOUND");
+			// And the off-topic standup message must not outrank the match.
+			expect(top.content).not.toContain("standup");
+		}
 
 		await am.agents.delete(agent.id);
 		await am.organizations.delete(org.id);

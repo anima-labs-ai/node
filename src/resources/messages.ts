@@ -7,6 +7,8 @@ import type {
 	MessageSearchParams,
 	PaginatedResponse,
 	RequestOptions,
+	SemanticSearchOutput,
+	SemanticSearchParams,
 	SendEmailInput,
 	SendSmsInput,
 	UploadAttachmentInput,
@@ -43,6 +45,25 @@ export class MessagesResource {
 			query,
 			filters: searchParams?.filters,
 			pagination: searchParams?.pagination,
+		}, undefined, options);
+	}
+
+	/**
+	 * Semantic (embedding-based) search over message content. Unlike
+	 * `search()`, which matches text, this ranks messages by meaning:
+	 * "the invoice from last week" finds messages that never contain
+	 * those words. Results are ordered by cosine similarity (best first).
+	 */
+	public semanticSearch(
+		query: string,
+		params?: SemanticSearchParams,
+		options?: RequestOptions,
+	): Promise<SemanticSearchOutput> {
+		return this.client.request<SemanticSearchOutput>("POST", "/messages/search/semantic", {
+			query,
+			agentId: params?.agentId,
+			limit: params?.limit,
+			threshold: params?.threshold,
 		}, undefined, options);
 	}
 

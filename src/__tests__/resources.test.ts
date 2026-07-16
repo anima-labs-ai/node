@@ -4,6 +4,7 @@ import type { RequestClient } from "../client";
 import { A2AResource } from "../resources/a2a";
 import { AgentsResource } from "../resources/agents";
 import { DomainsResource } from "../resources/domains";
+import { DraftsResource } from "../resources/drafts";
 import { EmailsResource } from "../resources/emails";
 import { InboxesResource } from "../resources/inboxes";
 import { MessagesResource } from "../resources/messages";
@@ -399,6 +400,110 @@ describe("resource methods", () => {
 			undefined,
 			undefined,
 		);
+	});
+
+	test("messages semanticSearch posts the query to /messages/search/semantic", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new MessagesResource(client);
+
+		await resource.semanticSearch("the invoice from last week", {
+			agentId: "agent_1",
+			limit: 5,
+			threshold: 0.6,
+		});
+		// Bare call: server applies defaults (limit 10, threshold 0.7) — the
+		// SDK must not bake its own copies of those defaults into the wire.
+		await resource.semanticSearch("hello");
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/messages/search/semantic",
+			{
+				query: "the invoice from last week",
+				agentId: "agent_1",
+				limit: 5,
+				threshold: 0.6,
+			},
+			undefined,
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/messages/search/semantic",
+			{
+				query: "hello",
+				agentId: undefined,
+				limit: undefined,
+				threshold: undefined,
+			},
+			undefined,
+			undefined,
+		);
+	});
+
+	test("drafts resource uses expected methods/paths", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new DraftsResource(client);
+
+		await resource.create({
+			agentId: "agent_1",
+			to: ["a@x.com"],
+			subject: "WIP",
+			body: "Draft body",
+		});
+		await resource.get("draft_1");
+		await resource.list({ agentId: "agent_1", limit: 10, cursor: "c1" });
+		await resource.send("draft_1");
+		await resource.delete("draft_1");
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/email/drafts",
+			{
+				agentId: "agent_1",
+				to: ["a@x.com"],
+				subject: "WIP",
+				body: "Draft body",
+			},
+			undefined,
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/email/drafts/draft_1",
+			undefined,
+			undefined,
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith("GET", "/email/drafts", undefined, {
+			agentId: "agent_1",
+			limit: "10",
+			cursor: "c1",
+		});
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/email/drafts/draft_1/send",
+			{ id: "draft_1" },
+			undefined,
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"DELETE",
+			"/email/drafts/draft_1",
+			undefined,
+			undefined,
+			undefined,
+		);
+	});
+
+	test("drafts delete resolves to the deleted draft (contract returns it, not void)", async () => {
+		const requestMock = mock(async () => ({ id: "draft_1", subject: "WIP" }));
+		const client: RequestClient = { request: requestMock as RequestClient["request"] };
+		const resource = new DraftsResource(client);
+
+		const deleted = await resource.delete("draft_1");
+
+		expect(deleted).toEqual({ id: "draft_1", subject: "WIP" } as never);
 	});
 
 	test("inboxes resource uses expected methods/paths", async () => {

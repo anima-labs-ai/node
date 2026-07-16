@@ -159,6 +159,18 @@ const results = await anima.messages.search("verification", {
   pagination: { limit: 10 },
 });
 
+// Semantic search — ranks messages by meaning, not text match:
+// finds "the invoice from last week" even when no message contains
+// those words. Results are ordered by similarity (best first).
+const semantic = await anima.messages.semanticSearch("the invoice from last week", {
+  agentId: "agent_id",   // optional — restrict to one agent
+  limit: 10,             // optional — max results (default 10)
+  threshold: 0.7,        // optional — min similarity 0-1 (default 0.7)
+});
+for (const hit of semantic.results) {
+  console.log(hit.similarity.toFixed(2), hit.content);
+}
+
 // Get a single message
 const msg = await anima.messages.get("msg_id");
 
@@ -184,6 +196,32 @@ const uploaded = await anima.emails.uploadAttachment("msg_id", {
   sizeBytes: 2048,
 });
 const download = await anima.emails.getAttachmentUrl("attachment_id");
+```
+
+### Email Drafts
+
+```ts
+// Compose a draft — may be incomplete (no recipients / subject yet)
+const draft = await anima.drafts.create({
+  agentId: "agent_id",
+  to: ["recipient@example.com"],
+  subject: "Quarterly report",
+  body: "Numbers attached.",
+});
+
+// Get and list
+const fetched = await anima.drafts.get(draft.id);
+const drafts = await anima.drafts.list({ agentId: "agent_id", limit: 20 });
+
+// Send — converts the draft into a real Message (threading, scanning and
+// limits all apply) and deletes the draft row. Resolves to the sent
+// Message; the draft id 404s afterwards. Incomplete drafts (missing
+// to/subject/body) are rejected with a ValidationError.
+const message = await anima.drafts.send(draft.id);
+console.log(message.status); // "SENT"
+
+// Delete without sending — resolves to the deleted draft
+const discarded = await anima.drafts.delete("draft_id");
 ```
 
 ### Inboxes
