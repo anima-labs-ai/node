@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
 
 import { AnimaClient } from "../client";
+import { Anima } from "../index";
 import { APIError, AuthError, NotFoundError, RateLimitError, ValidationError } from "../errors";
 
 describe("AnimaClient", () => {
@@ -122,5 +123,85 @@ describe("AnimaClient", () => {
 
 		const client = new AnimaClient({ apiKey: "mk_test", timeout: 1, maxRetries: 0 });
 		expect(client.request("GET", "/timeout")).rejects.toBeInstanceOf(APIError);
+	});
+});
+
+// ---------------------------------------------------------------------------
+// Spec B3 — labels on the wire.
+//
+// Labels are the agent's workflow state machine. The whole feature depends on
+// the filter reaching the API in the ONE shape it reads: a repeated `labels=`
+// key. Everything else about this SDK could be right and "my unread mail"
+// would still return the wrong mail.
+// ---------------------------------------------------------------------------
+describe("AnimaClient — label filters on the wire (B3)", () => {
+	const originalFetch = globalThis.fetch;
+	let fetchMock: ReturnType<typeof mock>;
+
+	beforeEach(() => {
+		fetchMock = mock();
+		globalThis.fetch = fetchMock as unknown as typeof fetch;
+	});
+
+	afterEach(() => {
+		globalThis.fetch = originalFetch;
+	});
+
+	function okOnce() {
+		fetchMock.mockResolvedValueOnce(
+			new Response(JSON.stringify({ items: [], pagination: { nextCursor: null, hasMore: false } }), {
+				status: 200,
+				headers: { "Content-Type": "application/json" },
+			}),
+		);
+	}
+
+	function calledUrl(): URL {
+		return new URL((fetchMock.mock.calls[0] as [string, RequestInit])[0]);
+	}
+
+	test("several labels become repeated keys, not one comma-joined value", async () => {
+		okOnce();
+		const client = new Anima({ apiKey: "mk_test", baseUrl: "https://api.example.com" });
+		await client.messages.list({ labels: ["urgent", "unread"] });
+
+		// A comma-join would ask the API for a single label literally named
+		// "urgent,unread" — it matches nothing, so the caller silently gets an
+		// empty inbox instead of their urgent unread mail.
+		expect(calledUrl().searchParams.getAll("labels")).toEqual(["urgent", "unread"]);
+	});
+
+	test("a single label is sent as a lone value (anima#309 accepts it)", async () => {
+		okOnce();
+		const client = new Anima({ apiKey: "mk_test", baseUrl: "https://api.example.com" });
+		await client.messages.list({ labels: ["unread"] });
+
+		const url = calledUrl();
+		expect(url.searchParams.getAll("labels")).toEqual(["unread"]);
+		// `?labels=unread` — the most common label call there is — 400'd until the
+		// contract accepted a lone value.
+		expect(url.search).toBe("?labels=unread");
+	});
+
+	test("includeSpam=false is transmitted, not dropped as falsy", async () => {
+		okOnce();
+		const client = new Anima({ apiKey: "mk_test", baseUrl: "https://api.example.com" });
+		await client.messages.list({ includeSpam: false });
+
+		// The server default is already false, so this looks pointless — until the
+		// default changes or a caller builds params programmatically. An explicit
+		// value must mean what it says.
+		expect(calledUrl().searchParams.get("includeSpam")).toBe("false");
+	});
+
+	test("emails.list carries labels the same way messages.list does", async () => {
+		okOnce();
+		const client = new Anima({ apiKey: "mk_test", baseUrl: "https://api.example.com" });
+		await client.emails.list({ labels: ["archived"] });
+
+		const url = calledUrl();
+		expect(url.pathname).toBe("/v1/email");
+		// The two surfaces must not drift on what a label filter means.
+		expect(url.searchParams.getAll("labels")).toEqual(["archived"]);
 	});
 });

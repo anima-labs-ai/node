@@ -84,7 +84,11 @@ export class AnimaClient implements RequestClient {
 		method: string,
 		path: string,
 		body?: unknown,
-		query?: Record<string, string>,
+		// `string[]` values become repeated keys (`?labels=a&labels=b`) — the form
+		// the API reads as an array. This matches the RequestClient interface and
+		// what buildUrl has always done; the narrower `Record<string, string>` here
+		// was the only thing stopping callers from passing a multi-value filter.
+		query?: Record<string, string | string[]>,
 		options?: RequestOptions,
 	): Promise<T> {
 		const url = this.buildUrl(path, query);

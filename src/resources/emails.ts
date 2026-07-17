@@ -41,15 +41,19 @@ export class EmailsResource {
 		return this.client.request<AttachmentDownloadOutput>("GET", `/attachments/${attachmentId}/download`, undefined, undefined, options);
 	}
 
-	private toQuery(params?: EmailListParams): Record<string, string> | undefined {
+	private toQuery(params?: EmailListParams): Record<string, string | string[]> | undefined {
 		if (!params) {
 			return undefined;
 		}
 
-		const query: Record<string, string> = {};
+		const query: Record<string, string | string[]> = {};
 		if (params.cursor) query.cursor = params.cursor;
 		if (params.limit !== undefined) query.limit = String(params.limit);
 		if (params.agentId) query.agentId = params.agentId;
+		// One `labels=` key per label; `includeSpam: false` is a real override and
+		// must survive, so the check is `!== undefined`.
+		if (params.labels?.length) query.labels = params.labels;
+		if (params.includeSpam !== undefined) query.includeSpam = String(params.includeSpam);
 
 		return Object.keys(query).length > 0 ? query : undefined;
 	}

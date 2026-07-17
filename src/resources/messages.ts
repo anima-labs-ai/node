@@ -5,6 +5,7 @@ import type {
 	MessageListParams,
 	MessageOutput,
 	MessageSearchParams,
+	MessageUpdateLabelsInput,
 	PaginatedResponse,
 	RequestOptions,
 	SemanticSearchOutput,
@@ -27,6 +28,40 @@ export class MessagesResource {
 
 	public get(id: string, options?: RequestOptions): Promise<MessageOutput> {
 		return this.client.request<MessageOutput>("GET", `/messages/${id}`, undefined, undefined, options);
+	}
+
+	/**
+	 * Add and/or remove labels on one message — the agent's workflow state.
+	 * Returns the updated message, so the caller never has to guess what the
+	 * labels became:
+	 *
+	 * ```ts
+	 * await anima.messages.updateLabels(id, { addLabels: ["read"] });
+	 * ```
+	 *
+	 * Adding `read` removes `unread` and vice versa. One message per call —
+	 * there is no batch form.
+	 */
+	public updateLabels(
+		id: string,
+		input: MessageUpdateLabelsInput,
+		options?: RequestOptions,
+	): Promise<MessageOutput> {
+		if (!input.addLabels?.length && !input.removeLabels?.length) {
+			// Caught here rather than 400ing after a round trip: a call with neither
+			// operation can only be a caller bug, and the API's own error would not
+			// say which of the two you forgot.
+			throw new TypeError(
+				"messages.updateLabels requires at least one of addLabels or removeLabels.",
+			);
+		}
+		return this.client.request<MessageOutput>(
+			"PATCH",
+			`/messages/${id}/labels`,
+			{ id, ...input },
+			undefined,
+			options,
+		);
 	}
 
 	public list(params?: MessageListParams): PageIterator<MessageOutput> {
@@ -90,18 +125,24 @@ export class MessagesResource {
 		return this.client.request<AttachmentDownloadOutput>("GET", `/attachments/${attachmentId}/download`, undefined, undefined, options);
 	}
 
-	private toListQuery(params?: MessageListParams): Record<string, string> | undefined {
+	private toListQuery(params?: MessageListParams): Record<string, string | string[]> | undefined {
 		if (!params) {
 			return undefined;
 		}
 
-		const query: Record<string, string> = {};
+		const query: Record<string, string | string[]> = {};
 		if (params.cursor) query.cursor = params.cursor;
 		if (params.limit !== undefined) query.limit = String(params.limit);
 		if (params.agentId) query.agentId = params.agentId;
 		if (params.threadId) query.threadId = params.threadId;
 		if (params.channel) query.channel = params.channel;
 		if (params.direction) query.direction = params.direction;
+		// Passed through as an array so buildUrl emits one `labels=` key per label.
+		// Joining on "," would send a single label literally named "a,b".
+		if (params.labels?.length) query.labels = params.labels;
+		// `!== undefined`, not truthiness: `includeSpam: false` is the caller
+		// explicitly overriding and must reach the wire.
+		if (params.includeSpam !== undefined) query.includeSpam = String(params.includeSpam);
 		if (params.dateRange?.from) query["dateRange.from"] = params.dateRange.from;
 		if (params.dateRange?.to) query["dateRange.to"] = params.dateRange.to;
 
