@@ -268,11 +268,36 @@ export interface MessageOutput {
 	sentAt: string | null;
 	receivedAt: string | null;
 	attachments: AttachmentOutput[];
+	/**
+	 * Workflow labels on this message. Always contains exactly one of the system
+	 * labels `unread` or `read`; may also contain `archived`, `spam` (the inbound
+	 * spam verdict) and any labels you add. Change them with
+	 * `messages.updateLabels()`.
+	 */
+	labels: string[];
 	createdAt: string;
 	updatedAt: string;
 }
 
-export interface MessageListParams extends PaginationInput {
+/**
+ * Label filters, shared by message list/search and email list so the surfaces
+ * cannot disagree on what "my unread mail" means.
+ */
+export interface MessageLabelFilters {
+	/**
+	 * Only return messages carrying ALL of these labels (`['urgent','unread']`
+	 * means urgent AND still unread). Case-insensitive. System labels: `unread`,
+	 * `read`, `archived`, `spam`.
+	 */
+	labels?: string[];
+	/**
+	 * Include messages classified as spam on arrival. Excluded by default. Naming
+	 * `spam` in `labels` also counts as asking for it.
+	 */
+	includeSpam?: boolean;
+}
+
+export interface MessageListParams extends PaginationInput, MessageLabelFilters {
 	agentId?: string;
 	threadId?: string;
 	channel?: MessageChannel;
@@ -280,12 +305,30 @@ export interface MessageListParams extends PaginationInput {
 	dateRange?: DateRange;
 }
 
-export interface MessageSearchFilters {
+export interface MessageSearchFilters extends MessageLabelFilters {
 	agentId?: string;
 	channel?: MessageChannel;
 	direction?: MessageDirection;
 	status?: MessageStatus;
 	dateRange?: DateRange;
+}
+
+/**
+ * Add and/or remove labels on one message. Supply at least one of
+ * `addLabels`/`removeLabels`.
+ *
+ * Add/remove rather than a whole-array replace: two agents working the same
+ * inbox would silently erase each other's tags under a `set`, and the server
+ * applies both operations in a single statement so concurrent callers converge.
+ */
+export interface MessageUpdateLabelsInput {
+	/**
+	 * Labels to add. Adding `read` removes `unread` and vice versa — one state
+	 * under two names, and a message always carries exactly one of them.
+	 */
+	addLabels?: string[];
+	/** Labels to remove. A message is never left with neither `read` nor `unread`. */
+	removeLabels?: string[];
 }
 
 export interface MessageSearchParams {
@@ -334,7 +377,7 @@ export interface AttachmentDownloadOutput {
 	expiresAt: string;
 }
 
-export interface EmailListParams extends PaginationInput {
+export interface EmailListParams extends PaginationInput, MessageLabelFilters {
 	agentId?: string;
 }
 

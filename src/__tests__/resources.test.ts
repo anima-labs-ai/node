@@ -1137,3 +1137,47 @@ describe("resource methods", () => {
 		);
 	});
 });
+
+// ---------------------------------------------------------------------------
+// Spec B3 — messages.updateLabels()
+// ---------------------------------------------------------------------------
+describe("messages.updateLabels (B3)", () => {
+	test("PATCHes the labels route with both operations", async () => {
+		const { client, requestMock } = createMockClient();
+		const messages = new MessagesResource(client);
+		await messages.updateLabels("msg_1", { addLabels: ["read"], removeLabels: ["unread"] });
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"PATCH",
+			"/messages/msg_1/labels",
+			// `id` is in the path AND the body: the contract's input schema carries
+			// it, so omitting it would 400 on a required field.
+			{ id: "msg_1", addLabels: ["read"], removeLabels: ["unread"] },
+			undefined,
+			undefined,
+		);
+	});
+
+	test("a call with neither operation throws before the request", () => {
+		const { client, requestMock } = createMockClient();
+		const messages = new MessagesResource(client);
+
+		// Failing fast beats a 400 round-trip: the API's error would not say which
+		// of the two operations the caller forgot.
+		expect(() => messages.updateLabels("msg_1", {})).toThrow(
+			/at least one of addLabels or removeLabels/,
+		);
+		expect(requestMock).not.toHaveBeenCalled();
+	});
+
+	test("empty arrays count as absent, not as an operation", () => {
+		const { client } = createMockClient();
+		const messages = new MessagesResource(client);
+
+		// `{ addLabels: [] }` reads like "add nothing" — it must be refused for the
+		// same reason `{}` is, not sent as a request that changes nothing.
+		expect(() => messages.updateLabels("msg_1", { addLabels: [], removeLabels: [] })).toThrow(
+			/at least one of addLabels or removeLabels/,
+		);
+	});
+});
