@@ -1005,26 +1005,26 @@ describe("resource methods", () => {
 			undefined,
 		);
 
-		await resource.list({ tier: "premium" });
+		// Multilingual catalog: filtering by language is the primary axis.
+		await resource.list({ language: "es" });
 		expect(requestMock).toHaveBeenCalledWith(
 			"GET",
 			"/voice/catalog",
 			undefined,
 			{
-				tier: "premium",
+				language: "es",
 			},
 			undefined,
 		);
 
-		await resource.list({ tier: "basic", gender: "female", language: "en-US" });
+		await resource.list({ gender: "female", language: "en" });
 		expect(requestMock).toHaveBeenCalledWith(
 			"GET",
 			"/voice/catalog",
 			undefined,
 			{
-				tier: "basic",
 				gender: "female",
-				language: "en-US",
+				language: "en",
 			},
 			undefined,
 		);

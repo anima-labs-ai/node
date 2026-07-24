@@ -287,6 +287,28 @@ await anima.phones.updateConfig("phone_id", { isPrimary: true });
 await anima.phones.release("phone_id");
 ```
 
+### Voices
+
+Browse the multilingual voice catalog and pick a voice for an agent's phone calls. Voices span several languages (English, Spanish, French, German, Italian, Japanese, Dutch, and more) — filter by `language` or `gender`.
+
+```ts
+// List every voice in the catalog
+const { voices } = await anima.voices.list();
+
+// Only Spanish voices
+const spanish = await anima.voices.list({ language: "es" });
+
+// Female English voices
+const enFemale = await anima.voices.list({ gender: "female", language: "en" });
+
+for (const voice of voices) {
+  console.log(voice.id, voice.name, voice.language, voice.descriptors);
+  // Play a preview: `sampleUrl` is a vendor-neutral clip served from the API
+  // host (undefined until a sample has been generated for that voice).
+  if (voice.sampleUrl) console.log("preview:", voice.sampleUrl);
+}
+```
+
 ### Webhooks
 
 ```ts
