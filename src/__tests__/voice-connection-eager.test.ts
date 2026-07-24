@@ -214,4 +214,33 @@ describe("VoiceConnection — transcription.eager listener", () => {
 
 		expect(events).toHaveLength(0);
 	});
+
+	test("ignores unknown message types without throwing or surfacing them as eager events", () => {
+		const mockWs = makeMockWs();
+		const conn = new TestVoiceConnection(mockWs);
+
+		const allMessages: unknown[] = [];
+		const eagerEvents: CallTranscriptionEagerEvent[] = [];
+		conn.on("message", (msg) => allMessages.push(msg));
+		conn.on("transcription.eager", (event) => eagerEvents.push(event));
+
+		// A frame type this SDK version has never seen. The server can add new
+		// frame types at any time; older clients must ignore them (forward-compat)
+		// rather than crash the read loop.
+		const emitUnknown = () =>
+			mockWs.emit(
+				"message",
+				JSON.stringify({
+					type: "call.some.future.frame",
+					callId: "c7",
+					payload: { anything: true },
+				}),
+			);
+
+		expect(emitUnknown).not.toThrow();
+		// Unknown frames pass through to generic message listeners untouched...
+		expect(allMessages).toHaveLength(1);
+		// ...but are never mistaken for a speculative-transcription (eager) event.
+		expect(eagerEvents).toHaveLength(0);
+	});
 });
