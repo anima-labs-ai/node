@@ -1844,25 +1844,31 @@ export interface QuarantineOutput {
 
 export type VoiceTier = "basic" | "premium";
 export type VoiceGender = "male" | "female" | "neutral";
-export type VoiceProvider = "telnyx" | "elevenlabs" | "aws-polly";
 export type CallDirection = "INBOUND" | "OUTBOUND";
 
+/**
+ * A voice in the catalog. Vendor-neutral: the underlying provider/model is
+ * never exposed — only descriptive metadata and a proxied preview URL.
+ */
 export interface Voice {
 	id: string;
 	name: string;
-	provider: VoiceProvider;
-	tier: VoiceTier;
-	gender?: VoiceGender;
-	language: string;
+	gender: VoiceGender;
 	accent?: string;
-	style?: string;
-	ageRange?: string;
-	description?: string;
-	previewUrl?: string;
+	age?: string;
+	/** Tone descriptors, e.g. `["warm", "smooth"]`. */
+	descriptors: string[];
+	useCases: string[];
+	/** Base language code, e.g. `"en"`, `"es"`, `"ja"`. */
+	language: string;
+	/**
+	 * Vendor-neutral preview URL under the API host — the client never touches
+	 * the provider CDN. Absent until a sample clip has been generated.
+	 */
+	sampleUrl?: string;
 }
 
 export interface ListVoicesParams {
-	tier?: VoiceTier;
 	gender?: VoiceGender;
 	language?: string;
 }
