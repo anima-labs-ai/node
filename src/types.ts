@@ -923,6 +923,102 @@ export interface CancelVaultCredentialRequestOutput {
 }
 
 // ---------------------------------------------------------------------------
+// Vault — OAuth (Connect Links & connected accounts)
+// ---------------------------------------------------------------------------
+
+export type OAuthAuthMethod = "OAUTH2" | "OAUTH2_PKCE" | "API_KEY" | "BASIC" | "BEARER";
+
+/** A connectable service. Public info only — never client secrets. */
+export interface OAuthAppDefinition {
+	id: string;
+	/** URL-safe slug (e.g. `google`, `github`, `slack`). */
+	slug: string;
+	name: string;
+	description: string | null;
+	iconUrl: string | null;
+	authMethod: OAuthAuthMethod;
+	defaultScopes: string[];
+	requiresPkce: boolean;
+	category: string | null;
+	/** Whether Anima supplies the OAuth credentials (vs. BYOA). */
+	isManaged: boolean;
+	isActive: boolean;
+}
+
+export interface ListOAuthAppsParams {
+	category?: string;
+}
+
+export type ConnectedAccountStatus =
+	| "PENDING"
+	| "ACTIVE"
+	| "EXPIRED"
+	| "REFRESHING"
+	| "FAILED"
+	| "REVOKED";
+
+/** An agent's authenticated connection to a service. */
+export interface ConnectedAccount {
+	id: string;
+	agentId: string;
+	/** End-user this connection belongs to (multi-tenant), null if org-wide. */
+	userId: string | null;
+	appDefinitionId: string;
+	appSlug: string;
+	appName: string;
+	appIconUrl: string | null;
+	/** Set when the connection uses a custom OAuth app (BYOA). */
+	customAppId: string | null;
+	grantedScopes: string[];
+	accountLabel: string | null;
+	accountEmail: string | null;
+	status: ConnectedAccountStatus;
+	/** Error detail when `status` is `FAILED`. */
+	statusMessage: string | null;
+	tokenExpiresAt: string | null;
+	lastRefreshedAt: string | null;
+	createdAt: string;
+	updatedAt: string;
+}
+
+export interface ListConnectedAccountsParams {
+	agentId?: string;
+	userId?: string;
+	appSlug?: string;
+	status?: ConnectedAccountStatus;
+}
+
+export interface CreateConnectLinkInput {
+	/** App slug to authenticate against (e.g. `google`, `github`). */
+	appSlug: string;
+	agentId?: string;
+	/** End-user ID for multi-tenant scoping. */
+	userId?: string;
+	/** Overrides the app's `defaultScopes`. */
+	scopes?: string[];
+	callbackUrl?: string;
+	/** Use a custom OAuth app (BYOA) instead of Anima's managed credentials. */
+	customAppId?: string;
+}
+
+/** A hosted auth URL for zero-code authentication. Expires in 10 minutes. */
+export interface ConnectLinkOutput {
+	/** Open this in a browser — hand it to the human, not the agent. */
+	linkUrl: string;
+	/** Poll `vaultOAuth.getLinkStatus` with this. */
+	token: string;
+	expiresAt: string;
+}
+
+export type ConnectLinkStatus = "PENDING" | "COMPLETED" | "EXPIRED" | "FAILED";
+
+export interface ConnectLinkStatusOutput {
+	status: ConnectLinkStatus;
+	/** Set once `status` is `COMPLETED`, null before that. */
+	connectedAccountId: string | null;
+}
+
+// ---------------------------------------------------------------------------
 // Vault — Sharing
 // ---------------------------------------------------------------------------
 

@@ -13,6 +13,7 @@ import { PhonesResource } from "./resources/phones";
 import { RegistryResource } from "./resources/registry";
 import { SecurityResource } from "./resources/security";
 import { VaultResource } from "./resources/vault";
+import { VaultOAuthResource } from "./resources/vault-oauth";
 import { WebhooksResource } from "./resources/webhooks";
 import { A2AResource } from "./resources/a2a";
 import { AuditResource } from "./resources/audit";
@@ -43,6 +44,7 @@ export class Anima {
 	public readonly webhooks: WebhooksResource;
 	public readonly security: SecurityResource;
 	public readonly vault: VaultResource;
+	public readonly vaultOAuth: VaultOAuthResource;
 	public readonly events: EventsResource;
 	public readonly a2a: A2AResource;
 	public readonly audit: AuditResource;
@@ -77,6 +79,7 @@ export class Anima {
 		this.webhooks = new WebhooksResource(this.client);
 		this.security = new SecurityResource(this.client);
 		this.vault = new VaultResource(this.client);
+		this.vaultOAuth = new VaultOAuthResource(this.client);
 		this.events = new EventsResource(apiKey, baseUrl);
 		this.a2a = new A2AResource(this.client);
 		this.audit = new AuditResource(this.client);

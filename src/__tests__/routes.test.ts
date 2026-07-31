@@ -330,11 +330,31 @@ function sdkCalls(): { file: string; route: string }[] {
 	return found;
 }
 
+/**
+ * Finds a path built by concatenation instead of a template literal.
+ *
+ * The scan above stops at the closing quote of the first literal, so
+ * `"GET", "/voice/calls/" + id + "/transcript"` would be checked as
+ * `GET /voice/calls` — a real route, so it passes while everything after the
+ * id goes unverified. The go SDK shipped exactly that. Use a template literal.
+ */
+function concatenatedPaths(): { file: string; prefix: string }[] {
+	const found: { file: string; prefix: string }[] = [];
+	const pattern = /"(?:GET|POST|PUT|PATCH|DELETE)",\s*"(\/[^"]*)"\s*\+/g;
+	for (const file of readdirSync(RESOURCES_DIR).filter((f) => f.endsWith(".ts"))) {
+		const source = readFileSync(join(RESOURCES_DIR, file), "utf8");
+		for (const match of source.matchAll(pattern)) {
+			found.push({ file, prefix: match[1] as string });
+		}
+	}
+	return found;
+}
+
 describe("every SDK route exists on the API", () => {
 	const calls = sdkCalls();
 
 	// If the regex above ever stops matching, this test would pass vacuously.
-	// The floor is deliberately close to the real count (~128) so a partial
+	// The floor is deliberately close to the real count (~134) so a partial
 	// match is caught too, not just a total one.
 	test("the scan actually found the resource calls", () => {
 		expect(calls.length).toBeGreaterThan(120);
@@ -346,5 +366,13 @@ describe("every SDK route exists on the API", () => {
 			.map(({ file, route }) => `${file}: ${route}`)
 			.sort();
 		expect(unknown).toEqual([]);
+	});
+
+	test("no resource builds a path by concatenation", () => {
+		const concatenated = concatenatedPaths().map(
+			({ file, prefix }) =>
+				`${file}: "${prefix}" + … — the scan cannot see past the +, use a template literal`,
+		);
+		expect(concatenated).toEqual([]);
 	});
 });
