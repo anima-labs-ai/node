@@ -73,7 +73,16 @@ export interface DateRange {
 	to?: string;
 }
 
-export type Tier = "FREE" | "DEVELOPER" | "GROWTH" | "SCALE" | "ENTERPRISE";
+/**
+ * Organization subscription tier. Mirrors `TierSchema` in the anima contracts
+ * and the Prisma `Tier` enum.
+ *
+ * Not decoration: `tier` on {@link CreateOrganizationInput} and
+ * {@link UpdateOrganizationInput} is typed with this union, so a tier missing
+ * here cannot be passed at all. STARTER was absent while DEVELOPER and SCALE —
+ * which the API neither accepts nor returns — were listed.
+ */
+export type Tier = "FREE" | "STARTER" | "GROWTH" | "ENTERPRISE";
 export type AgentStatus = "ACTIVE" | "SUSPENDED" | "DELETED";
 export type PhoneProvider = "TELNYX";
 export type TenDlcStatus = "PENDING" | "REGISTERED" | "REJECTED" | "NOT_REQUIRED";
