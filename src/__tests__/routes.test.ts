@@ -308,10 +308,17 @@ const API_ROUTES: ReadonlySet<string> = new Set([
 	"GET /webhooks/event-types",
 ]);
 
-/** Every `request("METHOD", `path`)` this SDK issues, as `METHOD /path`. */
+/**
+ * Every `request("METHOD", `path`)` this SDK issues, as `METHOD /path`.
+ *
+ * Anchored on the method literal rather than on `request<...>(`: the type
+ * argument is often a nested generic (`request<PaginatedResponse<Alert>>(`),
+ * and a `<[^>]*>` prefix stops at the inner `>` and silently skips the call.
+ * That hole hid 55 of this SDK's ~140 calls on the first cut of this test.
+ */
 function sdkCalls(): { file: string; route: string }[] {
 	const found: { file: string; route: string }[] = [];
-	const pattern = /request(?:<[^>]*>)?\(\s*"([A-Z]+)",\s*(?:`([^`]+)`|"([^"]+)")/g;
+	const pattern = /"(GET|POST|PUT|PATCH|DELETE)",\s*(?:`([^`]+)`|"(\/[^"]*)")/g;
 	for (const file of readdirSync(RESOURCES_DIR).filter((f) => f.endsWith(".ts"))) {
 		const source = readFileSync(join(RESOURCES_DIR, file), "utf8");
 		for (const match of source.matchAll(pattern)) {
@@ -327,8 +334,10 @@ describe("every SDK route exists on the API", () => {
 	const calls = sdkCalls();
 
 	// If the regex above ever stops matching, this test would pass vacuously.
+	// The floor is deliberately close to the real count (~128) so a partial
+	// match is caught too, not just a total one.
 	test("the scan actually found the resource calls", () => {
-		expect(calls.length).toBeGreaterThan(70);
+		expect(calls.length).toBeGreaterThan(120);
 	});
 
 	test("no resource calls a route the API does not serve", () => {
