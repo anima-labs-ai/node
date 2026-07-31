@@ -1142,26 +1142,17 @@ export interface WebhookDeliveryOutput {
 
 export interface WebhookDeliveryListParams extends PaginationInput {}
 
-export interface SecurityScanInput {
-	orgId: string;
-	agentId?: string;
-	channel: "EMAIL" | "SMS";
-	subject?: string;
-	body: string;
-	metadata?: Record<string, unknown>;
-}
-
-export interface SecurityScanWarning {
-	ruleId: string;
-	severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-	description: string;
-	match?: string;
-}
-
-export interface SecurityScanOutput {
-	blocked: boolean;
-	warnings: SecurityScanWarning[];
-	summary: string;
+// No SecurityScanInput/Output. They typed a POST /security/scan endpoint the
+// API has never served — scanning runs inside the send paths, not as a
+// callable route. GET /orgs/{orgId}/security/scanner-status below is the
+// security surface that does exist.
+export interface ScannerStatusOutput {
+	aiScanner: {
+		/** Whether the scanner runs on message traffic, not merely whether a provider is configured. */
+		active: boolean;
+		provider: string | null;
+		fallbackReason: string | null;
+	};
 }
 
 export type SecurityEventType =
@@ -1381,143 +1372,11 @@ export interface RegistrySearchParams extends PaginationInput {
 }
 
 // ---------------------------------------------------------------------------
-// Wallet
+// Wallet and Pods types used to live here. Both products were removed from the
+// API — there is no /agents/{id}/wallet or /pods route — so the types and their
+// resources went with them.
 // ---------------------------------------------------------------------------
 
-export type WalletStatus = "ACTIVE" | "FROZEN";
-
-export interface CreateWalletInput {
-	currency?: string;
-	metadata?: Record<string, unknown>;
-}
-
-export interface UpdateWalletInput {
-	metadata?: Record<string, unknown>;
-	spendLimitDaily?: number | null;
-	spendLimitMonthly?: number | null;
-}
-
-export interface WalletOutput {
-	id: string;
-	agentId: string;
-	address: string;
-	currency: string;
-	balance: number;
-	status: WalletStatus;
-	spendLimitDaily: number | null;
-	spendLimitMonthly: number | null;
-	metadata: Record<string, unknown>;
-	createdAt: string;
-	updatedAt: string;
-}
-
-export interface WalletPayInput {
-	to: string;
-	amount: number;
-	currency?: string;
-	memo?: string;
-	metadata?: Record<string, unknown>;
-}
-
-export interface WalletPayOutput {
-	transactionId: string;
-	from: string;
-	to: string;
-	amount: number;
-	currency: string;
-	status: string;
-	createdAt: string;
-}
-
-export interface X402FetchInput {
-	url: string;
-	method?: string;
-	headers?: Record<string, string>;
-	body?: string;
-	maxPaymentAmount?: number;
-}
-
-export interface X402FetchOutput {
-	status: number;
-	headers: Record<string, string>;
-	body: string;
-	paymentAmount: number | null;
-	transactionId: string | null;
-}
-
-export interface WalletTransactionOutput {
-	id: string;
-	walletId: string;
-	type: string;
-	amount: number;
-	currency: string;
-	from: string | null;
-	to: string | null;
-	memo: string | null;
-	status: string;
-	metadata: Record<string, unknown> | null;
-	createdAt: string;
-}
-
-export interface WalletTransactionsParams extends PaginationInput {
-	status?: string;
-}
-
-// ---------------------------------------------------------------------------
-// Pods
-// ---------------------------------------------------------------------------
-
-export type PodStatus = "RUNNING" | "STOPPED" | "CREATING" | "ERROR";
-
-export interface CreatePodInput {
-	agentId: string;
-	name: string;
-	image: string;
-	resources?: PodResourceSpec;
-	env?: Record<string, string>;
-	metadata?: Record<string, unknown>;
-}
-
-export interface UpdatePodInput {
-	name?: string;
-	resources?: PodResourceSpec;
-	env?: Record<string, string>;
-	metadata?: Record<string, unknown>;
-}
-
-export interface PodResourceSpec {
-	cpu?: string;
-	memory?: string;
-	storage?: string;
-}
-
-export interface PodOutput {
-	id: string;
-	agentId: string;
-	name: string;
-	image: string;
-	status: PodStatus;
-	resources: PodResourceSpec;
-	env: Record<string, string>;
-	metadata: Record<string, unknown>;
-	createdAt: string;
-	updatedAt: string;
-}
-
-export interface PodUsageOutput {
-	podId: string;
-	cpuUsage: number;
-	memoryUsage: number;
-	storageUsage: number;
-	networkIn: number;
-	networkOut: number;
-	uptimeSeconds: number;
-	measuredAt: string;
-}
-
-export interface ListPodsParams extends PaginationInput {
-	agentId?: string;
-}
 
 // ---------------------------------------------------------------------------
 // A2A (Agent-to-Agent Protocol)
