@@ -1620,10 +1620,48 @@ export interface AuditLogExportOutput {
 // Compliance
 // ---------------------------------------------------------------------------
 
+// Every enum below is SCREAMING_SNAKE because that is what the API validates
+// against — see packages/contracts/src/schemas/compliance.ts and
+// compliance-controls.ts in the monorepo. This block previously declared them
+// in lowercase, which meant every compliance call this SDK could make was
+// rejected with a 400. __tests__/compliance-contract.test.ts now pins them.
 export type ComplianceFramework = "SOC2" | "GDPR" | "PCI";
-export type ComplianceControlStatus = "not_started" | "in_progress" | "implemented" | "verified" | "failed";
-export type ComplianceReportType = "soc2_summary" | "activity_report" | "access_review" | "audit_export" | "gdpr_dsar";
-export type DsarStatus = "pending" | "in_progress" | "completed" | "rejected";
+export type ComplianceControlStatus =
+	| "NOT_STARTED"
+	| "IN_PROGRESS"
+	| "IMPLEMENTED"
+	| "VERIFIED"
+	| "FAILED";
+export type ComplianceControlCategory =
+	| "CC1"
+	| "CC2"
+	| "CC3"
+	| "CC4"
+	| "CC5"
+	| "CC6"
+	| "CC7"
+	| "CC8"
+	| "CC9"
+	| "A1"
+	| "PI1"
+	| "C1"
+	| "P1";
+export type ComplianceReportType =
+	| "SOC2_SUMMARY"
+	| "ACTIVITY_REPORT"
+	| "ACCESS_REVIEW"
+	| "AUDIT_EXPORT"
+	| "GDPR_DSAR";
+export type ComplianceReportStatus = "PENDING" | "GENERATING" | "COMPLETED" | "FAILED";
+export type ComplianceReportFormat = "JSON" | "CSV" | "PDF";
+export type DsarType = "ACCESS" | "DELETE" | "RECTIFY" | "PORTABILITY" | "RESTRICT";
+export type DsarStatus =
+	| "RECEIVED"
+	| "VERIFIED"
+	| "IN_PROGRESS"
+	| "COMPLETED"
+	| "DENIED"
+	| "OVERDUE";
 
 export interface ComplianceControlOutput {
 	id: string;
@@ -1632,7 +1670,7 @@ export interface ComplianceControlOutput {
 	controlId: string;
 	title: string;
 	description: string;
-	category: string;
+	category: ComplianceControlCategory;
 	status: ComplianceControlStatus;
 	owner: string | null;
 	lastTestedAt: string | null;
@@ -1643,7 +1681,7 @@ export interface ComplianceControlOutput {
 
 export interface ComplianceControlListParams extends PaginationInput {
 	framework?: ComplianceFramework;
-	category?: string;
+	category?: ComplianceControlCategory;
 	status?: ComplianceControlStatus;
 }
 
@@ -1663,77 +1701,141 @@ export interface SeedFrameworkOutput {
 
 export interface GenerateReportInput {
 	type: ComplianceReportType;
-	from?: string;
-	to?: string;
-	metadata?: Record<string, unknown>;
+	title?: string;
+	description?: string;
+	format?: ComplianceReportFormat;
+	generatedBy?: string;
+	periodStart?: string;
+	periodEnd?: string;
+	parameters?: Record<string, unknown>;
 }
 
 export interface ComplianceReportOutput {
 	id: string;
 	orgId: string;
 	type: ComplianceReportType;
-	status: string;
 	title: string;
-	summary: string | null;
-	data: Record<string, unknown> | null;
-	generatedAt: string;
+	description: string | null;
+	status: ComplianceReportStatus;
+	format: ComplianceReportFormat;
+	parameters: Record<string, unknown>;
+	content: Record<string, unknown> | null;
+	errorMessage: string | null;
+	generatedBy: string | null;
+	periodStart: string | null;
+	periodEnd: string | null;
+	completedAt: string | null;
 	createdAt: string;
 	updatedAt: string;
 }
 
 export interface ComplianceReportListParams extends PaginationInput {
 	type?: ComplianceReportType;
+	status?: ComplianceReportStatus;
 }
 
-export interface ComplianceReportDownloadOutput {
-	url: string;
-	format: string;
-	expiresAt: string;
+export interface ExportReportInput {
+	format?: ComplianceReportFormat;
+}
+
+/** The export is returned inline, not as a signed URL. */
+export interface ExportReportOutput {
+	data: string;
+	contentType: string;
+	filename: string;
+}
+
+export interface ComplianceTemplateOutput {
+	type: string;
+	title: string;
+	description: string;
+}
+
+export interface ListTemplatesOutput {
+	items: ComplianceTemplateOutput[];
 }
 
 export interface ComplianceDashboardOutput {
-	orgId: string;
-	frameworks: Record<string, ComplianceFrameworkSummary>;
-	overallScore: number;
-	recentActivity: ComplianceReportOutput[];
-}
-
-export interface ComplianceFrameworkSummary {
-	totalControls: number;
-	implemented: number;
-	verified: number;
-	failed: number;
-	notStarted: number;
-	score: number;
+	reports: {
+		total: number;
+		byType: Record<string, number>;
+		byStatus: Record<string, number>;
+		recentReports: Array<{
+			id: string;
+			type: string;
+			title: string;
+			status: string;
+			createdAt: string;
+			completedAt: string | null;
+		}>;
+	};
+	dsars: {
+		total: number;
+		byStatus: Record<string, number>;
+		byType: Record<string, number>;
+		overdue: number;
+		averageResolutionDays: number | null;
+		recentRequests: Array<{
+			id: string;
+			type: string;
+			status: string;
+			subjectEmail: string;
+			dueAt: string;
+			createdAt: string;
+		}>;
+	};
+	compliance: {
+		overallProgress: number;
+		frameworkSummaries: Array<{
+			framework: string;
+			totalControls: number;
+			implementedCount: number;
+			progress: number;
+		}>;
+	};
 }
 
 export interface CreateDsarInput {
+	/** The API field is `type`, not `requestType`. */
+	type: DsarType;
 	subjectEmail: string;
-	requestType: "access" | "deletion" | "rectification" | "portability";
+	subjectName?: string;
+	subjectId?: string;
 	description?: string;
+	/** 1-90, defaults to 30 — the GDPR response window. */
+	dueInDays?: number;
 	metadata?: Record<string, unknown>;
 }
 
 export interface DsarOutput {
 	id: string;
 	orgId: string;
-	subjectEmail: string;
-	requestType: string;
+	type: DsarType;
 	status: DsarStatus;
+	subjectEmail: string;
+	subjectName: string | null;
+	subjectId: string | null;
 	description: string | null;
-	metadata: Record<string, unknown> | null;
+	requestedAt: string;
+	verifiedAt: string | null;
+	dueAt: string;
 	completedAt: string | null;
+	processedBy: string | null;
+	response: Record<string, unknown> | null;
+	metadata: Record<string, unknown>;
 	createdAt: string;
 	updatedAt: string;
 }
 
 export interface DsarListParams extends PaginationInput {
 	status?: DsarStatus;
+	type?: DsarType;
 }
 
-export interface CompleteDsarInput {
-	notes?: string;
-	metadata?: Record<string, unknown>;
+export interface UpdateDsarStatusInput {
+	status: DsarStatus;
+	processedBy?: string;
+	response?: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------

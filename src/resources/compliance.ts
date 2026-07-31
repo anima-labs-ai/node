@@ -9,15 +9,23 @@ import type {
 	ComplianceReportOutput,
 	GenerateReportInput,
 	ComplianceReportListParams,
-	ComplianceReportDownloadOutput,
+	ExportReportInput,
+	ExportReportOutput,
+	ListTemplatesOutput,
 	ComplianceDashboardOutput,
 	DsarOutput,
 	CreateDsarInput,
 	DsarListParams,
-	CompleteDsarInput,
+	UpdateDsarStatusInput,
 	RequestOptions,
 } from "../types";
 
+/**
+ * Compliance controls, reports, and data-subject requests.
+ *
+ * Every route here is org-scoped, so `orgId` is the first argument rather than
+ * a body field, and all of them require a master key (`mk_*`).
+ */
 export class ComplianceResource {
 	public constructor(private readonly client: RequestClient) {}
 
@@ -61,6 +69,16 @@ export class ComplianceResource {
 		);
 	}
 
+	public listTemplates(orgId: string, options?: RequestOptions): Promise<ListTemplatesOutput> {
+		return this.client.request<ListTemplatesOutput>(
+			"GET",
+			`/orgs/${orgId}/compliance/templates`,
+			undefined,
+			undefined,
+			options,
+		);
+	}
+
 	public generateReport(orgId: string, input: GenerateReportInput, options?: RequestOptions): Promise<ComplianceReportOutput> {
 		return this.client.request<ComplianceReportOutput>(
 			"POST",
@@ -91,10 +109,27 @@ export class ComplianceResource {
 		);
 	}
 
-	public downloadReport(orgId: string, reportId: string, options?: RequestOptions): Promise<ComplianceReportDownloadOutput> {
-		return this.client.request<ComplianceReportDownloadOutput>(
-			"GET",
-			`/orgs/${orgId}/compliance/reports/${reportId}/download`,
+	/**
+	 * Export a generated report. The bytes come back inline as
+	 * `{ data, contentType, filename }` — there is no signed download URL.
+	 *
+	 * Replaces `downloadReport`, which issued a GET to a `/download` sub-path
+	 * that the API does not serve.
+	 */
+	public exportReport(orgId: string, reportId: string, input?: ExportReportInput, options?: RequestOptions): Promise<ExportReportOutput> {
+		return this.client.request<ExportReportOutput>(
+			"POST",
+			`/orgs/${orgId}/compliance/reports/${reportId}/export`,
+			input ?? {},
+			undefined,
+			options,
+		);
+	}
+
+	public deleteReport(orgId: string, reportId: string, options?: RequestOptions): Promise<void> {
+		return this.client.request<void>(
+			"DELETE",
+			`/orgs/${orgId}/compliance/reports/${reportId}`,
 			undefined,
 			undefined,
 			options,
@@ -131,10 +166,26 @@ export class ComplianceResource {
 		);
 	}
 
-	public completeDsar(orgId: string, dsarId: string, input?: CompleteDsarInput, options?: RequestOptions): Promise<DsarOutput> {
+	public getDsar(orgId: string, dsarId: string, options?: RequestOptions): Promise<DsarOutput> {
 		return this.client.request<DsarOutput>(
-			"POST",
-			`/orgs/${orgId}/compliance/dsars/${dsarId}/complete`,
+			"GET",
+			`/orgs/${orgId}/compliance/dsars/${dsarId}`,
+			undefined,
+			undefined,
+			options,
+		);
+	}
+
+	/**
+	 * Move a DSAR along its lifecycle.
+	 *
+	 * Replaces `completeDsar`, which POSTed to a `/complete` sub-path that does
+	 * not exist. The API models this as a PATCH carrying the new status.
+	 */
+	public updateDsarStatus(orgId: string, dsarId: string, input: UpdateDsarStatusInput, options?: RequestOptions): Promise<DsarOutput> {
+		return this.client.request<DsarOutput>(
+			"PATCH",
+			`/orgs/${orgId}/compliance/dsars/${dsarId}`,
 			input,
 			undefined,
 			options,
@@ -156,6 +207,7 @@ export class ComplianceResource {
 		const query: Record<string, string> = {};
 		if (!params) return query;
 		if (params.type) query.type = params.type;
+		if (params.status) query.status = params.status;
 		if (params.cursor) query.cursor = params.cursor;
 		if (params.limit !== undefined) query.limit = String(params.limit);
 		return query;
@@ -165,6 +217,7 @@ export class ComplianceResource {
 		const query: Record<string, string> = {};
 		if (!params) return query;
 		if (params.status) query.status = params.status;
+		if (params.type) query.type = params.type;
 		if (params.cursor) query.cursor = params.cursor;
 		if (params.limit !== undefined) query.limit = String(params.limit);
 		return query;
