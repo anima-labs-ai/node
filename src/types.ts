@@ -643,10 +643,16 @@ export interface VaultIdentityOutput {
 	id: string;
 	agentId: string;
 	orgId: string;
+	/** Identifiers in the vault backend. Null until provisioning completes. */
+	vaultUserId: string | null;
+	vaultOrgId: string | null;
+	collectionId: string | null;
+	/** One of `ACTIVE`, `LOCKED`, `ERROR`. */
 	status: string;
 	credentialCount: number;
 	lastSyncAt: string | null;
 	createdAt: string;
+	updatedAt: string;
 }
 
 export interface ListVaultIdentitiesParams {
@@ -916,6 +922,33 @@ export interface VaultCredentialRequestStatusOutput {
 	credentialId: string | null;
 	/** Masked preview (e.g. ****1234) — never the plaintext. */
 	maskedPreview: string | null;
+}
+
+/**
+ * A credential request in the org-wide list.
+ *
+ * Distinct from {@link VaultCredentialRequest}, which is what creating one
+ * returns: this carries the requesting agent, type, reason and `createdAt`,
+ * and its `fillUrl` is present only while PENDING.
+ */
+export interface VaultCredentialRequestListItem {
+	requestId: string;
+	agentId: string;
+	type: CredentialType;
+	name: string;
+	reason: string;
+	/** Lazily expired — a request past its TTL reads as EXPIRED here. */
+	status: VaultCredentialRequestStatus;
+	/** Present only while PENDING; the URL stops working once filled. */
+	fillUrl: string | null;
+	credentialId: string | null;
+	expiresAt: string;
+	createdAt: string;
+}
+
+export interface ListVaultCredentialRequestsParams extends PaginationInput {
+	agentId?: string;
+	status?: VaultCredentialRequestStatus;
 }
 
 export interface CancelVaultCredentialRequestOutput {

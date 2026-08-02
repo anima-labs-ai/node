@@ -8,6 +8,7 @@ import type {
 	DeprovisionVaultInput,
 	GeneratePasswordInput,
 	ListVaultCredentialsParams,
+	ListVaultCredentialRequestsParams,
 	ListVaultIdentitiesParams,
 	PaginatedResponse,
 	ProvisionVaultInput,
@@ -22,6 +23,7 @@ import type {
 	VaultAuditQueryParams,
 	VaultCredential,
 	VaultCredentialRequest,
+	VaultCredentialRequestListItem,
 	VaultCredentialRequestStatusOutput,
 	VaultIdentityListItem,
 	VaultIdentityOutput,
@@ -267,6 +269,38 @@ export class VaultResource {
 			undefined,
 			options,
 		);
+	}
+
+	/**
+	 * List credential requests across the organization, newest first.
+	 *
+	 * Statuses are lazily expired, so a request whose TTL has elapsed reads as
+	 * EXPIRED here even though nothing wrote that transition.
+	 */
+	public credentialRequestList(
+		params?: ListVaultCredentialRequestsParams,
+	): PageIterator<VaultCredentialRequestListItem> {
+		return new PageIterator<VaultCredentialRequestListItem>((cursor) => {
+			const merged = cursor ? { ...params, cursor } : params;
+			return this.client.request<PaginatedResponse<VaultCredentialRequestListItem>>(
+				"GET",
+				"/vault/credential-requests",
+				undefined,
+				this.toCredentialRequestsQuery(merged),
+			);
+		});
+	}
+
+	private toCredentialRequestsQuery(
+		params?: ListVaultCredentialRequestsParams,
+	): Record<string, string> {
+		const query: Record<string, string> = {};
+		if (!params) return query;
+		if (params.agentId) query.agentId = params.agentId;
+		if (params.status) query.status = params.status;
+		if (params.cursor) query.cursor = params.cursor;
+		if (params.limit !== undefined) query.limit = String(params.limit);
+		return query;
 	}
 
 	public credentialRequestStatus(
