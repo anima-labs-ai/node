@@ -908,21 +908,16 @@ describe("resource methods", () => {
 		const { client, requestMock } = createMockClient();
 		const resource = new SecurityResource(client);
 
-		await resource.scanContent({
-			orgId: "org_1",
-			channel: "EMAIL",
-			body: "hello",
-		});
+		// No scanContent: it POSTed to /security/scan, which the API does not
+		// serve. This test used to assert that phantom path, which is how it
+		// survived — the mock happily accepted a route the server never had.
+		await resource.getScannerStatus("org_1");
 		await resource.listEvents({ orgId: "org_1", type: "BLOCKED", limit: 10 });
 
 		expect(requestMock).toHaveBeenCalledWith(
-			"POST",
-			"/security/scan",
-			{
-				orgId: "org_1",
-				channel: "EMAIL",
-				body: "hello",
-			},
+			"GET",
+			"/orgs/org_1/security/scanner-status",
+			undefined,
 			undefined,
 			undefined,
 		);
@@ -939,8 +934,9 @@ describe("resource methods", () => {
 		const { client, requestMock } = createMockClient();
 		const resource = new IdentityResource(client);
 
+		// No resolveDid: it GET /identity/did/{did}, a route the API does not
+		// serve. Resolving a DID is registry.lookup.
 		await resource.getDid("agent_1");
-		await resource.resolveDid("did:web:agents.useanima.sh:org:agent");
 		await resource.listCredentials("agent_1");
 		await resource.issueCredential("agent_1", {
 			type: "AnimaTrustScore",
@@ -952,14 +948,6 @@ describe("resource methods", () => {
 		expect(requestMock).toHaveBeenCalledWith(
 			"GET",
 			"/agents/agent_1/did",
-			undefined,
-			undefined,
-			undefined,
-		);
-		expect(requestMock).toHaveBeenCalledWith(
-			"GET",
-			// DIDs contain ":" — the path segment must be URI-encoded.
-			"/identity/did/did%3Aweb%3Aagents.useanima.sh%3Aorg%3Aagent",
 			undefined,
 			undefined,
 			undefined,

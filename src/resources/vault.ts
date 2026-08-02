@@ -449,3 +449,17 @@ export class VaultResource {
 // credential-broker model handles third-party auth through vault
 // credentials + ephemeral vtk_ tokens instead of a separate OAuth
 // catalogue. The HTTP endpoints remain for the console and CLI.
+//
+// DO NOT ADD IT BACK on the strength of those endpoints existing. The whole
+// OAuth-gateway product line was killed the same day (anima 71c243ce, "not
+// competing with Composio on OAuth management"), and anima 894035bc — which
+// deleted the console pages — says the procedures "remain dormant in
+// packages/contracts + apps/api/routes/handlers/vault.ts; full backend
+// cleanup is a separate chore". The connector catalogue is seeded only in CI,
+// so listApps returns [] in production and createLink has no valid slug.
+//
+// This matters for routes.test.ts: its allowlist is generated from
+// packages/contracts, which is exactly where dormant, pending-deletion routes
+// live. The guard proves a path is DECLARED, not that the product is alive —
+// it cannot tell the two apart, and it scored these six as a coverage gap.
+// It was re-added on that reading in 2026-08 and removed again here.

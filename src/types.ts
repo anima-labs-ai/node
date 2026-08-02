@@ -1142,26 +1142,17 @@ export interface WebhookDeliveryOutput {
 
 export interface WebhookDeliveryListParams extends PaginationInput {}
 
-export interface SecurityScanInput {
-	orgId: string;
-	agentId?: string;
-	channel: "EMAIL" | "SMS";
-	subject?: string;
-	body: string;
-	metadata?: Record<string, unknown>;
-}
-
-export interface SecurityScanWarning {
-	ruleId: string;
-	severity: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
-	description: string;
-	match?: string;
-}
-
-export interface SecurityScanOutput {
-	blocked: boolean;
-	warnings: SecurityScanWarning[];
-	summary: string;
+// No SecurityScanInput/Output. They typed a POST /security/scan endpoint the
+// API has never served — scanning runs inside the send paths, not as a
+// callable route. GET /orgs/{orgId}/security/scanner-status below is the
+// security surface that does exist.
+export interface ScannerStatusOutput {
+	aiScanner: {
+		/** Whether the scanner runs on message traffic, not merely whether a provider is configured. */
+		active: boolean;
+		provider: string | null;
+		fallbackReason: string | null;
+	};
 }
 
 export type SecurityEventType =
@@ -1260,17 +1251,6 @@ export interface DidRotateOutput {
 	rotatedAt: string;
 }
 
-export interface VerifiableCredential {
-	id: string;
-	type: string;
-	issuer: string;
-	subject: string;
-	issuanceDate: string;
-	expirationDate: string | null;
-	credentialSubject: Record<string, unknown>;
-	proof: Record<string, unknown>;
-}
-
 /**
  * The credential types Anima issues. Platform verification events
  * auto-issue `AnimaEmailVerified`/`AnimaOwnerBound` (email OTP),
@@ -1324,7 +1304,19 @@ export interface IssueCredentialInput {
 
 export interface VerifyCredentialOutput {
 	valid: boolean;
-	credential: VerifiableCredential | null;
+	/**
+	 * The decoded JWT-VC payload, left opaque on purpose. The contract types it
+	 * as `z.record(z.unknown()).nullable()`, and the value is a `JwtVcPayload` —
+	 * `{ iss, sub, vc, iat, exp, jti }`, with the W3C credential under `vc`.
+	 * It was typed as a flat W3C document (`issuer`/`subject`/`proof` at the top
+	 * level); none of those keys exist there, and a JWT-VC has no `proof` object
+	 * at all — the JWS signature is the proof.
+	 *
+	 * Non-null for most invalid results too: revoked, expired and
+	 * signature-mismatched credentials all still decode. Null only when the JWT
+	 * is malformed, so branch on `valid`, never on `credential !== null`.
+	 */
+	credential: Record<string, unknown> | null;
 	errors: string[];
 }
 
@@ -1381,143 +1373,11 @@ export interface RegistrySearchParams extends PaginationInput {
 }
 
 // ---------------------------------------------------------------------------
-// Wallet
+// Wallet and Pods types used to live here. Both products were removed from the
+// API — there is no /agents/{id}/wallet or /pods route — so the types and their
+// resources went with them.
 // ---------------------------------------------------------------------------
 
-export type WalletStatus = "ACTIVE" | "FROZEN";
-
-export interface CreateWalletInput {
-	currency?: string;
-	metadata?: Record<string, unknown>;
-}
-
-export interface UpdateWalletInput {
-	metadata?: Record<string, unknown>;
-	spendLimitDaily?: number | null;
-	spendLimitMonthly?: number | null;
-}
-
-export interface WalletOutput {
-	id: string;
-	agentId: string;
-	address: string;
-	currency: string;
-	balance: number;
-	status: WalletStatus;
-	spendLimitDaily: number | null;
-	spendLimitMonthly: number | null;
-	metadata: Record<string, unknown>;
-	createdAt: string;
-	updatedAt: string;
-}
-
-export interface WalletPayInput {
-	to: string;
-	amount: number;
-	currency?: string;
-	memo?: string;
-	metadata?: Record<string, unknown>;
-}
-
-export interface WalletPayOutput {
-	transactionId: string;
-	from: string;
-	to: string;
-	amount: number;
-	currency: string;
-	status: string;
-	createdAt: string;
-}
-
-export interface X402FetchInput {
-	url: string;
-	method?: string;
-	headers?: Record<string, string>;
-	body?: string;
-	maxPaymentAmount?: number;
-}
-
-export interface X402FetchOutput {
-	status: number;
-	headers: Record<string, string>;
-	body: string;
-	paymentAmount: number | null;
-	transactionId: string | null;
-}
-
-export interface WalletTransactionOutput {
-	id: string;
-	walletId: string;
-	type: string;
-	amount: number;
-	currency: string;
-	from: string | null;
-	to: string | null;
-	memo: string | null;
-	status: string;
-	metadata: Record<string, unknown> | null;
-	createdAt: string;
-}
-
-export interface WalletTransactionsParams extends PaginationInput {
-	status?: string;
-}
-
-// ---------------------------------------------------------------------------
-// Pods
-// ---------------------------------------------------------------------------
-
-export type PodStatus = "RUNNING" | "STOPPED" | "CREATING" | "ERROR";
-
-export interface CreatePodInput {
-	agentId: string;
-	name: string;
-	image: string;
-	resources?: PodResourceSpec;
-	env?: Record<string, string>;
-	metadata?: Record<string, unknown>;
-}
-
-export interface UpdatePodInput {
-	name?: string;
-	resources?: PodResourceSpec;
-	env?: Record<string, string>;
-	metadata?: Record<string, unknown>;
-}
-
-export interface PodResourceSpec {
-	cpu?: string;
-	memory?: string;
-	storage?: string;
-}
-
-export interface PodOutput {
-	id: string;
-	agentId: string;
-	name: string;
-	image: string;
-	status: PodStatus;
-	resources: PodResourceSpec;
-	env: Record<string, string>;
-	metadata: Record<string, unknown>;
-	createdAt: string;
-	updatedAt: string;
-}
-
-export interface PodUsageOutput {
-	podId: string;
-	cpuUsage: number;
-	memoryUsage: number;
-	storageUsage: number;
-	networkIn: number;
-	networkOut: number;
-	uptimeSeconds: number;
-	measuredAt: string;
-}
-
-export interface ListPodsParams extends PaginationInput {
-	agentId?: string;
-}
 
 // ---------------------------------------------------------------------------
 // A2A (Agent-to-Agent Protocol)
@@ -1620,10 +1480,48 @@ export interface AuditLogExportOutput {
 // Compliance
 // ---------------------------------------------------------------------------
 
+// Every enum below is SCREAMING_SNAKE because that is what the API validates
+// against — see packages/contracts/src/schemas/compliance.ts and
+// compliance-controls.ts in the monorepo. This block previously declared them
+// in lowercase, which meant every compliance call this SDK could make was
+// rejected with a 400. __tests__/compliance-contract.test.ts now pins them.
 export type ComplianceFramework = "SOC2" | "GDPR" | "PCI";
-export type ComplianceControlStatus = "not_started" | "in_progress" | "implemented" | "verified" | "failed";
-export type ComplianceReportType = "soc2_summary" | "activity_report" | "access_review" | "audit_export" | "gdpr_dsar";
-export type DsarStatus = "pending" | "in_progress" | "completed" | "rejected";
+export type ComplianceControlStatus =
+	| "NOT_STARTED"
+	| "IN_PROGRESS"
+	| "IMPLEMENTED"
+	| "VERIFIED"
+	| "FAILED";
+export type ComplianceControlCategory =
+	| "CC1"
+	| "CC2"
+	| "CC3"
+	| "CC4"
+	| "CC5"
+	| "CC6"
+	| "CC7"
+	| "CC8"
+	| "CC9"
+	| "A1"
+	| "PI1"
+	| "C1"
+	| "P1";
+export type ComplianceReportType =
+	| "SOC2_SUMMARY"
+	| "ACTIVITY_REPORT"
+	| "ACCESS_REVIEW"
+	| "AUDIT_EXPORT"
+	| "GDPR_DSAR";
+export type ComplianceReportStatus = "PENDING" | "GENERATING" | "COMPLETED" | "FAILED";
+export type ComplianceReportFormat = "JSON" | "CSV" | "PDF";
+export type DsarType = "ACCESS" | "DELETE" | "RECTIFY" | "PORTABILITY" | "RESTRICT";
+export type DsarStatus =
+	| "RECEIVED"
+	| "VERIFIED"
+	| "IN_PROGRESS"
+	| "COMPLETED"
+	| "DENIED"
+	| "OVERDUE";
 
 export interface ComplianceControlOutput {
 	id: string;
@@ -1632,7 +1530,7 @@ export interface ComplianceControlOutput {
 	controlId: string;
 	title: string;
 	description: string;
-	category: string;
+	category: ComplianceControlCategory;
 	status: ComplianceControlStatus;
 	owner: string | null;
 	lastTestedAt: string | null;
@@ -1643,7 +1541,7 @@ export interface ComplianceControlOutput {
 
 export interface ComplianceControlListParams extends PaginationInput {
 	framework?: ComplianceFramework;
-	category?: string;
+	category?: ComplianceControlCategory;
 	status?: ComplianceControlStatus;
 }
 
@@ -1663,77 +1561,141 @@ export interface SeedFrameworkOutput {
 
 export interface GenerateReportInput {
 	type: ComplianceReportType;
-	from?: string;
-	to?: string;
-	metadata?: Record<string, unknown>;
+	title?: string;
+	description?: string;
+	format?: ComplianceReportFormat;
+	generatedBy?: string;
+	periodStart?: string;
+	periodEnd?: string;
+	parameters?: Record<string, unknown>;
 }
 
 export interface ComplianceReportOutput {
 	id: string;
 	orgId: string;
 	type: ComplianceReportType;
-	status: string;
 	title: string;
-	summary: string | null;
-	data: Record<string, unknown> | null;
-	generatedAt: string;
+	description: string | null;
+	status: ComplianceReportStatus;
+	format: ComplianceReportFormat;
+	parameters: Record<string, unknown>;
+	content: Record<string, unknown> | null;
+	errorMessage: string | null;
+	generatedBy: string | null;
+	periodStart: string | null;
+	periodEnd: string | null;
+	completedAt: string | null;
 	createdAt: string;
 	updatedAt: string;
 }
 
 export interface ComplianceReportListParams extends PaginationInput {
 	type?: ComplianceReportType;
+	status?: ComplianceReportStatus;
 }
 
-export interface ComplianceReportDownloadOutput {
-	url: string;
-	format: string;
-	expiresAt: string;
+export interface ExportReportInput {
+	format?: ComplianceReportFormat;
+}
+
+/** The export is returned inline, not as a signed URL. */
+export interface ExportReportOutput {
+	data: string;
+	contentType: string;
+	filename: string;
+}
+
+export interface ComplianceTemplateOutput {
+	type: string;
+	title: string;
+	description: string;
+}
+
+export interface ListTemplatesOutput {
+	items: ComplianceTemplateOutput[];
 }
 
 export interface ComplianceDashboardOutput {
-	orgId: string;
-	frameworks: Record<string, ComplianceFrameworkSummary>;
-	overallScore: number;
-	recentActivity: ComplianceReportOutput[];
-}
-
-export interface ComplianceFrameworkSummary {
-	totalControls: number;
-	implemented: number;
-	verified: number;
-	failed: number;
-	notStarted: number;
-	score: number;
+	reports: {
+		total: number;
+		byType: Record<string, number>;
+		byStatus: Record<string, number>;
+		recentReports: Array<{
+			id: string;
+			type: string;
+			title: string;
+			status: string;
+			createdAt: string;
+			completedAt: string | null;
+		}>;
+	};
+	dsars: {
+		total: number;
+		byStatus: Record<string, number>;
+		byType: Record<string, number>;
+		overdue: number;
+		averageResolutionDays: number | null;
+		recentRequests: Array<{
+			id: string;
+			type: string;
+			status: string;
+			subjectEmail: string;
+			dueAt: string;
+			createdAt: string;
+		}>;
+	};
+	compliance: {
+		overallProgress: number;
+		frameworkSummaries: Array<{
+			framework: string;
+			totalControls: number;
+			implementedCount: number;
+			progress: number;
+		}>;
+	};
 }
 
 export interface CreateDsarInput {
+	/** The API field is `type`, not `requestType`. */
+	type: DsarType;
 	subjectEmail: string;
-	requestType: "access" | "deletion" | "rectification" | "portability";
+	subjectName?: string;
+	subjectId?: string;
 	description?: string;
+	/** 1-90, defaults to 30 — the GDPR response window. */
+	dueInDays?: number;
 	metadata?: Record<string, unknown>;
 }
 
 export interface DsarOutput {
 	id: string;
 	orgId: string;
-	subjectEmail: string;
-	requestType: string;
+	type: DsarType;
 	status: DsarStatus;
+	subjectEmail: string;
+	subjectName: string | null;
+	subjectId: string | null;
 	description: string | null;
-	metadata: Record<string, unknown> | null;
+	requestedAt: string;
+	verifiedAt: string | null;
+	dueAt: string;
 	completedAt: string | null;
+	processedBy: string | null;
+	response: Record<string, unknown> | null;
+	metadata: Record<string, unknown>;
 	createdAt: string;
 	updatedAt: string;
 }
 
 export interface DsarListParams extends PaginationInput {
 	status?: DsarStatus;
+	type?: DsarType;
 }
 
-export interface CompleteDsarInput {
-	notes?: string;
-	metadata?: Record<string, unknown>;
+export interface UpdateDsarStatusInput {
+	status: DsarStatus;
+	processedBy?: string;
+	response?: Record<string, unknown>;
 }
 
 // ---------------------------------------------------------------------------

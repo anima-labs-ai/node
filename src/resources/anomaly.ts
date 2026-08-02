@@ -19,7 +19,7 @@ export class AnomalyResource {
 	public listAlerts(orgId: string, params?: AnomalyAlertListParams, options?: RequestOptions): Promise<PaginatedResponse<AnomalyAlertOutput>> {
 		return this.client.request<PaginatedResponse<AnomalyAlertOutput>>(
 			"GET",
-			`/orgs/${orgId}/anomaly/alerts`,
+			`/orgs/${orgId}/anomaly-alerts`,
 			undefined,
 			this.toAlertQuery(params),
 			options,
@@ -29,7 +29,17 @@ export class AnomalyResource {
 	public acknowledgeAlert(orgId: string, alertId: string, options?: RequestOptions): Promise<AnomalyAlertOutput> {
 		return this.client.request<AnomalyAlertOutput>(
 			"POST",
-			`/orgs/${orgId}/anomaly/alerts/${alertId}/acknowledge`,
+			`/orgs/${orgId}/anomaly-alerts/${alertId}/acknowledge`,
+			undefined,
+			undefined,
+			options,
+		);
+	}
+
+	public getAlert(orgId: string, alertId: string, options?: RequestOptions): Promise<AnomalyAlertOutput> {
+		return this.client.request<AnomalyAlertOutput>(
+			"GET",
+			`/orgs/${orgId}/anomaly-alerts/${alertId}`,
 			undefined,
 			undefined,
 			options,
@@ -39,7 +49,18 @@ export class AnomalyResource {
 	public resolveAlert(orgId: string, alertId: string, options?: RequestOptions): Promise<AnomalyAlertOutput> {
 		return this.client.request<AnomalyAlertOutput>(
 			"POST",
-			`/orgs/${orgId}/anomaly/alerts/${alertId}/resolve`,
+			`/orgs/${orgId}/anomaly-alerts/${alertId}/resolve`,
+			undefined,
+			undefined,
+			options,
+		);
+	}
+
+	/** Mark an alert as a false positive, which feeds the detector's baseline. */
+	public falsePositiveAlert(orgId: string, alertId: string, options?: RequestOptions): Promise<AnomalyAlertOutput> {
+		return this.client.request<AnomalyAlertOutput>(
+			"POST",
+			`/orgs/${orgId}/anomaly-alerts/${alertId}/false-positive`,
 			undefined,
 			undefined,
 			options,
@@ -49,7 +70,7 @@ export class AnomalyResource {
 	public listRules(orgId: string, params?: AnomalyRuleListParams, options?: RequestOptions): Promise<PaginatedResponse<AnomalyRuleOutput>> {
 		return this.client.request<PaginatedResponse<AnomalyRuleOutput>>(
 			"GET",
-			`/orgs/${orgId}/anomaly/rules`,
+			`/orgs/${orgId}/anomaly-rules`,
 			undefined,
 			this.toRuleQuery(params),
 			options,
@@ -59,7 +80,7 @@ export class AnomalyResource {
 	public createRule(orgId: string, input: CreateAnomalyRuleInput, options?: RequestOptions): Promise<AnomalyRuleOutput> {
 		return this.client.request<AnomalyRuleOutput>(
 			"POST",
-			`/orgs/${orgId}/anomaly/rules`,
+			`/orgs/${orgId}/anomaly-rules`,
 			input,
 			undefined,
 			options,
@@ -69,7 +90,7 @@ export class AnomalyResource {
 	public updateRule(orgId: string, ruleId: string, input: UpdateAnomalyRuleInput, options?: RequestOptions): Promise<AnomalyRuleOutput> {
 		return this.client.request<AnomalyRuleOutput>(
 			"PATCH",
-			`/orgs/${orgId}/anomaly/rules/${ruleId}`,
+			`/orgs/${orgId}/anomaly-rules/${ruleId}`,
 			input,
 			undefined,
 			options,
@@ -79,7 +100,7 @@ export class AnomalyResource {
 	public deleteRule(orgId: string, ruleId: string, options?: RequestOptions): Promise<void> {
 		return this.client.request<void>(
 			"DELETE",
-			`/orgs/${orgId}/anomaly/rules/${ruleId}`,
+			`/orgs/${orgId}/anomaly-rules/${ruleId}`,
 			undefined,
 			undefined,
 			options,
@@ -89,7 +110,7 @@ export class AnomalyResource {
 	public getBaseline(orgId: string, agentId: string, options?: RequestOptions): Promise<AgentBaselineOutput> {
 		return this.client.request<AgentBaselineOutput>(
 			"GET",
-			`/orgs/${orgId}/anomaly/baselines/${agentId}`,
+			`/orgs/${orgId}/agents/${agentId}/baselines`,
 			undefined,
 			undefined,
 			options,
@@ -99,17 +120,31 @@ export class AnomalyResource {
 	public quarantine(orgId: string, agentId: string, input: QuarantineInput, options?: RequestOptions): Promise<QuarantineOutput> {
 		return this.client.request<QuarantineOutput>(
 			"POST",
-			`/orgs/${orgId}/anomaly/quarantine/${agentId}`,
+			`/orgs/${orgId}/agents/${agentId}/quarantine`,
 			input,
 			undefined,
 			options,
 		);
 	}
 
+	public getQuarantine(orgId: string, agentId: string, options?: RequestOptions): Promise<QuarantineOutput> {
+		return this.client.request<QuarantineOutput>(
+			"GET",
+			`/orgs/${orgId}/agents/${agentId}/quarantine`,
+			undefined,
+			undefined,
+			options,
+		);
+	}
+
+	/**
+	 * Lift a quarantine. The API models this as DELETE on the quarantine itself;
+	 * this used to POST to a `/release` sub-path that does not exist.
+	 */
 	public releaseQuarantine(orgId: string, agentId: string, options?: RequestOptions): Promise<QuarantineOutput> {
 		return this.client.request<QuarantineOutput>(
-			"POST",
-			`/orgs/${orgId}/anomaly/quarantine/${agentId}/release`,
+			"DELETE",
+			`/orgs/${orgId}/agents/${agentId}/quarantine`,
 			undefined,
 			undefined,
 			options,

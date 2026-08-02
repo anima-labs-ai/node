@@ -340,17 +340,13 @@ const deliveries = await anima.webhooks.listDeliveries("webhook_id", { limit: 20
 ### Security
 
 ```ts
-// Scan content before sending
-const scan = await anima.security.scanContent({
-  orgId: "org_id",
-  channel: "EMAIL",
-  subject: "Account details",
-  body: "Here is your SSN: 123-45-6789",
-});
+// Content scanning is not a call you make. It runs inside the send paths,
+// so a blocked message surfaces as an error from emails.send / messages.send.
+// What you can query is whether the scanner is actually running:
+const { aiScanner } = await anima.security.getScannerStatus("org_id");
 
-if (scan.blocked) {
-  console.error("Content blocked:", scan.summary);
-  console.error("Warnings:", scan.warnings);
+if (!aiScanner.active) {
+  console.warn("AI scanning is off:", aiScanner.fallbackReason);
 }
 
 // List security events
