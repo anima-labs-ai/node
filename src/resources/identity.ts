@@ -18,7 +18,7 @@ export class IdentityResource {
 
 	// No `resolveDid`. It called GET /identity/did/{did}, which the API has
 	// never served, and resolving a DID to its owning agent is what
-	// `registry.getByDid` does — GET /registry/agents/{did}.
+	// `registry.lookup(did)` does — GET /registry/agents/{did}.
 
 	public rotateKeys(agentId: string, options?: RequestOptions): Promise<DidRotateOutput> {
 		return this.client.request<DidRotateOutput>("POST", `/agents/${agentId}/did/rotate`, undefined, undefined, options);

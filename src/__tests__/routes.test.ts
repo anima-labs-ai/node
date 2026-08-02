@@ -9,18 +9,43 @@
  * calls went nowhere.
  *
  * This test reads the resource sources and checks each path literal against
- * the allowlist below, which is transcribed from the monorepo's
+ * the allowlist below, generated from the monorepo's
  * `packages/contracts/src/contracts/*.ts` at the commit in `.anima-ref`. A new
  * method reaching for a route that does not exist fails here.
  *
- * Regenerate the allowlist when `.anima-ref` moves:
+ * WHAT THIS PROVES, AND WHAT IT DOES NOT. A path in the allowlist is DECLARED
+ * in the contracts. That is not the same as "the product is alive". Killed
+ * surfaces are routinely left in place — anima `894035bc` deleted the OAuth
+ * console pages and says the procedures "remain dormant in packages/contracts
+ * + apps/api/routes/handlers/vault.ts; full backend cleanup is a separate
+ * chore" — and some are declared `deprecated: true` and answer 400 by design
+ * (`POST /mcp-auth/sessions`). So a gap between this list and the SDK is NOT
+ * by itself evidence of missing coverage. In 2026-08 six dormant vault OAuth
+ * routes were read that way and re-added to all three SDKs; they were removed
+ * again. Check git history for a deliberate removal before filling any gap.
  *
- *   grep -rhoE 'method: "[A-Z]+", path: "[^"]+"' \
- *     packages/contracts/src/contracts/*.ts |
- *     sed -E 's/method: "([A-Z]+)", path: "([^"]+)"/\1 \2/' | sort -u
+ * Regenerate when `.anima-ref` moves, from the monorepo root:
  *
- * plus the three routes registered directly on fastify rather than through
- * oRPC, which that grep does not see: GET /audit/events, GET /events/stream,
+ *   python3 - <<'EOF'
+ *   import re, pathlib
+ *   src = "".join(p.read_text() for p in
+ *                 sorted(pathlib.Path("packages/contracts/src/contracts").glob("*.ts")))
+ *   out = set()
+ *   for m in re.finditer(r'\.route\(\s*\{(.*?)\}\s*\)', src, re.S):
+ *       meth = re.search(r'method:\s*"([A-Z]+)"', m.group(1))
+ *       path = re.search(r'path:\s*"([^"]+)"', m.group(1))
+ *       if meth and path:
+ *           out.add(meth.group(1) + " " + re.sub(r'\{[^}]*\}', '*', path.group(1)))
+ *   print("\n".join(sorted(out)))
+ *   EOF
+ *
+ * It must parse the whole `.route({...})` object, not one line: eight routes
+ * spread method and path across lines (`POST /addresses/*&#47;validate`, the four
+ * mcp-auth ones, three agents email-identity ones). The single-line grep this
+ * header used to recommend silently dropped all eight.
+ *
+ * Then add the three routes registered directly on fastify rather than through
+ * oRPC, which no contracts scan can see: GET /audit/events, GET /events/stream,
  * POST /a2a/inbound.
  */
 
@@ -331,20 +356,29 @@ function sdkCalls(): { file: string; route: string }[] {
 }
 
 /**
- * Finds a path built by concatenation instead of a template literal.
+ * Finds a path built by concatenation instead of a single literal.
  *
- * The scan above stops at the closing quote of the first literal, so
+ * `sdkCalls` above stops at the end of the first literal, so
  * `"GET", "/voice/calls/" + id + "/transcript"` would be checked as
  * `GET /voice/calls` — a real route, so it passes while everything after the
- * id goes unverified. The go SDK shipped exactly that. Use a template literal.
+ * id goes unverified. The go SDK shipped exactly that.
+ *
+ * Both literal forms must be matched. Catching only the double-quoted one
+ * leaves `` `/voice/calls/${id}` + "/transcript" `` free to reopen the same
+ * hole, which is how this test was first written.
+ *
+ * Note the residual gap: a path that does not *start* with a literal at all
+ * (`request("GET", basePath + "/x")`, `request("GET", this.build(id))`)
+ * matches neither this nor `sdkCalls`, so it is never checked. The count
+ * floor only catches a wholesale regression, not one added method.
  */
 function concatenatedPaths(): { file: string; prefix: string }[] {
 	const found: { file: string; prefix: string }[] = [];
-	const pattern = /"(?:GET|POST|PUT|PATCH|DELETE)",\s*"(\/[^"]*)"\s*\+/g;
+	const pattern = /"(?:GET|POST|PUT|PATCH|DELETE)",\s*(?:"(\/[^"]*)"|`([^`]*)`)\s*\+/g;
 	for (const file of readdirSync(RESOURCES_DIR).filter((f) => f.endsWith(".ts"))) {
 		const source = readFileSync(join(RESOURCES_DIR, file), "utf8");
 		for (const match of source.matchAll(pattern)) {
-			found.push({ file, prefix: match[1] as string });
+			found.push({ file, prefix: (match[1] ?? match[2]) as string });
 		}
 	}
 	return found;

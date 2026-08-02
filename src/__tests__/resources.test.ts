@@ -935,7 +935,7 @@ describe("resource methods", () => {
 		const resource = new IdentityResource(client);
 
 		// No resolveDid: it GET /identity/did/{did}, a route the API does not
-		// serve. Resolving a DID is registry.getByDid.
+		// serve. Resolving a DID is registry.lookup.
 		await resource.getDid("agent_1");
 		await resource.listCredentials("agent_1");
 		await resource.issueCredential("agent_1", {

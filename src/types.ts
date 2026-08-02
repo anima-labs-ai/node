@@ -923,102 +923,6 @@ export interface CancelVaultCredentialRequestOutput {
 }
 
 // ---------------------------------------------------------------------------
-// Vault — OAuth (Connect Links & connected accounts)
-// ---------------------------------------------------------------------------
-
-export type OAuthAuthMethod = "OAUTH2" | "OAUTH2_PKCE" | "API_KEY" | "BASIC" | "BEARER";
-
-/** A connectable service. Public info only — never client secrets. */
-export interface OAuthAppDefinition {
-	id: string;
-	/** URL-safe slug (e.g. `google`, `github`, `slack`). */
-	slug: string;
-	name: string;
-	description: string | null;
-	iconUrl: string | null;
-	authMethod: OAuthAuthMethod;
-	defaultScopes: string[];
-	requiresPkce: boolean;
-	category: string | null;
-	/** Whether Anima supplies the OAuth credentials (vs. BYOA). */
-	isManaged: boolean;
-	isActive: boolean;
-}
-
-export interface ListOAuthAppsParams {
-	category?: string;
-}
-
-export type ConnectedAccountStatus =
-	| "PENDING"
-	| "ACTIVE"
-	| "EXPIRED"
-	| "REFRESHING"
-	| "FAILED"
-	| "REVOKED";
-
-/** An agent's authenticated connection to a service. */
-export interface ConnectedAccount {
-	id: string;
-	agentId: string;
-	/** End-user this connection belongs to (multi-tenant), null if org-wide. */
-	userId: string | null;
-	appDefinitionId: string;
-	appSlug: string;
-	appName: string;
-	appIconUrl: string | null;
-	/** Set when the connection uses a custom OAuth app (BYOA). */
-	customAppId: string | null;
-	grantedScopes: string[];
-	accountLabel: string | null;
-	accountEmail: string | null;
-	status: ConnectedAccountStatus;
-	/** Error detail when `status` is `FAILED`. */
-	statusMessage: string | null;
-	tokenExpiresAt: string | null;
-	lastRefreshedAt: string | null;
-	createdAt: string;
-	updatedAt: string;
-}
-
-export interface ListConnectedAccountsParams {
-	agentId?: string;
-	userId?: string;
-	appSlug?: string;
-	status?: ConnectedAccountStatus;
-}
-
-export interface CreateConnectLinkInput {
-	/** App slug to authenticate against (e.g. `google`, `github`). */
-	appSlug: string;
-	agentId?: string;
-	/** End-user ID for multi-tenant scoping. */
-	userId?: string;
-	/** Overrides the app's `defaultScopes`. */
-	scopes?: string[];
-	callbackUrl?: string;
-	/** Use a custom OAuth app (BYOA) instead of Anima's managed credentials. */
-	customAppId?: string;
-}
-
-/** A hosted auth URL for zero-code authentication. Expires in 10 minutes. */
-export interface ConnectLinkOutput {
-	/** Open this in a browser — hand it to the human, not the agent. */
-	linkUrl: string;
-	/** Poll `vaultOAuth.getLinkStatus` with this. */
-	token: string;
-	expiresAt: string;
-}
-
-export type ConnectLinkStatus = "PENDING" | "COMPLETED" | "EXPIRED" | "FAILED";
-
-export interface ConnectLinkStatusOutput {
-	status: ConnectLinkStatus;
-	/** Set once `status` is `COMPLETED`, null before that. */
-	connectedAccountId: string | null;
-}
-
-// ---------------------------------------------------------------------------
 // Vault — Sharing
 // ---------------------------------------------------------------------------
 
@@ -1347,17 +1251,6 @@ export interface DidRotateOutput {
 	rotatedAt: string;
 }
 
-export interface VerifiableCredential {
-	id: string;
-	type: string;
-	issuer: string;
-	subject: string;
-	issuanceDate: string;
-	expirationDate: string | null;
-	credentialSubject: Record<string, unknown>;
-	proof: Record<string, unknown>;
-}
-
 /**
  * The credential types Anima issues. Platform verification events
  * auto-issue `AnimaEmailVerified`/`AnimaOwnerBound` (email OTP),
@@ -1411,7 +1304,19 @@ export interface IssueCredentialInput {
 
 export interface VerifyCredentialOutput {
 	valid: boolean;
-	credential: VerifiableCredential | null;
+	/**
+	 * The decoded JWT-VC payload, left opaque on purpose. The contract types it
+	 * as `z.record(z.unknown()).nullable()`, and the value is a `JwtVcPayload` —
+	 * `{ iss, sub, vc, iat, exp, jti }`, with the W3C credential under `vc`.
+	 * It was typed as a flat W3C document (`issuer`/`subject`/`proof` at the top
+	 * level); none of those keys exist there, and a JWT-VC has no `proof` object
+	 * at all — the JWS signature is the proof.
+	 *
+	 * Non-null for most invalid results too: revoked, expired and
+	 * signature-mismatched credentials all still decode. Null only when the JWT
+	 * is malformed, so branch on `valid`, never on `credential !== null`.
+	 */
+	credential: Record<string, unknown> | null;
 	errors: string[];
 }
 
