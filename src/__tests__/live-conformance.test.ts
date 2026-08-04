@@ -45,6 +45,7 @@ import {
 	ValidationError,
 } from "../errors";
 import { Anima } from "../index";
+import type { ComplianceFramework, SecuritySeverity } from "../types";
 
 const apiKey = process.env.ANIMA_LIVE_API_KEY;
 const orgId = process.env.ANIMA_LIVE_ORG_ID;
@@ -65,6 +66,16 @@ const anima = new Anima({
 });
 
 /**
+ * How many probes got a real 2xx back.
+ *
+ * A 401 is a pass for each probe on its own — it proves the route exists — but
+ * that does not compose: a key scoped for nothing is rejected everywhere and
+ * turns this whole file green having checked no path, no query param and no
+ * response shape. The final test below fails that run.
+ */
+let reached = 0;
+
+/**
  * Run one read-only call and apply the verdict table above.
  *
  * `PromiseLike`, not `Promise`: the list methods return `PageIterator`, which
@@ -73,6 +84,7 @@ const anima = new Anima({
 async function probe(call: () => PromiseLike<unknown>): Promise<void> {
 	try {
 		await call();
+		reached++;
 	} catch (err) {
 		if (err instanceof NotFoundError) {
 			throw new Error(
@@ -268,8 +280,27 @@ describe("live conformance — org-scoped (the surface that was most wrong)", ()
  * these would have returned 400 — while the mocked tests passed.
  */
 describe("live conformance — declared enums are accepted", () => {
-	const frameworks = ["SOC2", "GDPR", "PCI"] as const;
-	const severities = ["LOW", "MEDIUM", "HIGH", "CRITICAL"] as const;
+	// Spelled as `satisfies Record<Union, true>` rather than a plain array so
+	// the compiler owns the list. Add a member to the union and this record is
+	// missing a key; remove one and it has an excess key. Either way it fails
+	// to build, so the probe cannot silently drift out of step with the type
+	// it is meant to cover — a hand-written array agrees with itself forever,
+	// which is the exact failure mode this file exists to end.
+	//
+	// The `Object.keys` cast is the standard workaround for its `string[]`
+	// return type; the `satisfies` above is what makes it sound here.
+	const frameworks = Object.keys({
+		SOC2: true,
+		GDPR: true,
+		PCI: true,
+	} satisfies Record<ComplianceFramework, true>) as ComplianceFramework[];
+
+	const severities = Object.keys({
+		LOW: true,
+		MEDIUM: true,
+		HIGH: true,
+		CRITICAL: true,
+	} satisfies Record<SecuritySeverity, true>) as SecuritySeverity[];
 
 	for (const framework of frameworks) {
 		orgScoped(`compliance framework ${framework}`, async () => {
@@ -290,4 +321,29 @@ describe("live conformance — declared enums are accepted", () => {
 			);
 		});
 	}
+});
+
+/**
+ * Fail a run in which no probe ever got a 2xx.
+ *
+ * Every verdict above is sound on its own, but "401 is a pass" does not
+ * compose: a key with no scopes is rejected everywhere, each probe passes
+ * because the route demonstrably exists, and this file goes green having
+ * verified nothing at all — the same hollow tick the mocks were giving us,
+ * which is the entire reason the file exists.
+ *
+ * Deliberately last: bun runs tests within a file in source order, so every
+ * probe above has already run and settled `reached`.
+ */
+describe("live conformance — the run reached the API", () => {
+	live("at least one probe got a 2xx", () => {
+		if (reached === 0) {
+			throw new Error(
+				"no probe reached the API: every call was rejected (401/403), rate " +
+					"limited, or skipped, so this run verified no path, no query param " +
+					"and no response shape. Check that ANIMA_LIVE_API_KEY is valid and " +
+					"scoped — a green run in this state would prove nothing.",
+			);
+		}
+	});
 });
