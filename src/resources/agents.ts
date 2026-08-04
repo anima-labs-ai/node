@@ -11,30 +11,69 @@ import type {
 export class AgentsResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public create(input: CreateAgentInput, options?: RequestOptions): Promise<AgentOutput> {
-		return this.client.request<AgentOutput>("POST", "/agents", input, undefined, options);
+	public create(
+		input: CreateAgentInput,
+		options?: RequestOptions,
+	): Promise<AgentOutput> {
+		return this.client.request<AgentOutput>(
+			"POST",
+			"/agents",
+			input,
+			undefined,
+			options,
+		);
 	}
 
 	public get(id: string, options?: RequestOptions): Promise<AgentOutput> {
-		return this.client.request<AgentOutput>("GET", `/agents/${id}`, undefined, undefined, options);
+		return this.client.request<AgentOutput>(
+			"GET",
+			`/agents/${id}`,
+			undefined,
+			undefined,
+			options,
+		);
 	}
 
 	public list(params?: AgentListParams): PageIterator<AgentOutput> {
 		return new PageIterator<AgentOutput>((cursor) => {
 			const merged = cursor ? { ...params, cursor } : params;
-			return this.client.request("GET", "/agents", undefined, this.toQuery(merged));
+			return this.client.request(
+				"GET",
+				"/agents",
+				undefined,
+				this.toQuery(merged),
+			);
 		});
 	}
 
-	public update(id: string, input: UpdateAgentInput, options?: RequestOptions): Promise<AgentOutput> {
-		return this.client.request<AgentOutput>("PATCH", `/agents/${id}`, { ...input, id }, undefined, options);
+	public update(
+		id: string,
+		input: UpdateAgentInput,
+		options?: RequestOptions,
+	): Promise<AgentOutput> {
+		return this.client.request<AgentOutput>(
+			"PATCH",
+			`/agents/${id}`,
+			{ ...input, id },
+			undefined,
+			options,
+		);
 	}
 
 	public async delete(id: string, options?: RequestOptions): Promise<void> {
-		await this.client.request<void>("DELETE", `/agents/${id}`, undefined, undefined, options);
+		await this.client.request<void>(
+			"DELETE",
+			`/agents/${id}`,
+			undefined,
+			undefined,
+			options,
+		);
 	}
 
-	public rotateKey(id: string, options?: RequestOptions): Promise<{ apiKey: string; apiKeyPrefix: string }> {
+	public rotateKey(
+		id: string,
+		options?: RequestOptions,
+	): Promise<{ apiKey: string; apiKeyPrefix: string }> {
 		return this.client.request<{ apiKey: string; apiKeyPrefix: string }>(
 			"POST",
 			`/agents/${id}/rotate-key`,
@@ -44,7 +83,9 @@ export class AgentsResource {
 		);
 	}
 
-	private toQuery(params?: AgentListParams): Record<string, string> | undefined {
+	private toQuery(
+		params?: AgentListParams,
+	): Record<string, string> | undefined {
 		if (!params) {
 			return undefined;
 		}

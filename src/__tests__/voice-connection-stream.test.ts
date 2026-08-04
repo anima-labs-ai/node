@@ -80,7 +80,10 @@ describe("VoiceConnection.speakStream", () => {
 		}
 	}
 
-	function makeConn(readyState: number = WebSocket.OPEN): { conn: TestVoiceConnection; ws: MockWs } {
+	function makeConn(readyState: number = WebSocket.OPEN): {
+		conn: TestVoiceConnection;
+		ws: MockWs;
+	} {
 		const mockWs = makeMockWs(readyState);
 		const connection = new TestVoiceConnection(mockWs);
 		return { conn: connection, ws: mockWs };
@@ -148,7 +151,9 @@ describe("VoiceConnection.speakStream", () => {
 		// speakStream should propagate that same behaviour without throwing.
 		const { conn, ws: mockWs } = makeConn(WebSocket.CLOSED);
 
-		await expect(conn.speakStream("call-4", asyncChunks("text"))).resolves.toBeUndefined();
+		await expect(
+			conn.speakStream("call-4", asyncChunks("text")),
+		).resolves.toBeUndefined();
 
 		// Nothing was sent because WS is closed
 		expect(mockWs.sentMessages).toHaveLength(0);

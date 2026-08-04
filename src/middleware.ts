@@ -1,5 +1,5 @@
-import { constructWebhookEvent } from "./webhooks";
 import type { WebhookEvent } from "./types";
+import { constructWebhookEvent } from "./webhooks";
 
 /**
  * Express-compatible middleware that verifies webhook signatures and
@@ -16,20 +16,29 @@ import type { WebhookEvent } from "./types";
  * });
  * ```
  */
-export function webhookMiddleware(secret: string): (req: WebhookRequest, res: WebhookResponse, next: (err?: unknown) => void) => void {
+export function webhookMiddleware(
+	secret: string,
+): (
+	req: WebhookRequest,
+	res: WebhookResponse,
+	next: (err?: unknown) => void,
+) => void {
 	return (req, res, next) => {
-		const signature = req.headers["anima-signature"] ?? req.headers["x-anima-signature"];
+		const signature =
+			req.headers["anima-signature"] ?? req.headers["x-anima-signature"];
 		if (!signature || typeof signature !== "string") {
 			res.status(400).json({ error: "Missing webhook signature header" });
 			return;
 		}
 
 		// Get raw body - Express needs express.raw() or express.json() with verify
-		const body = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+		const body =
+			typeof req.body === "string" ? req.body : JSON.stringify(req.body);
 
 		try {
 			const event = constructWebhookEvent(body, signature, secret);
-			(req as WebhookRequest & { webhookEvent: WebhookEvent }).webhookEvent = event;
+			(req as WebhookRequest & { webhookEvent: WebhookEvent }).webhookEvent =
+				event;
 			next();
 		} catch (err) {
 			res.status(400).json({ error: "Invalid webhook signature" });

@@ -1,6 +1,11 @@
 import WebSocket from "ws";
 
-import type { CallTranscriptionEagerEvent, VoiceConnectionOptions, VoiceMessage, VoiceMessageType } from "./types";
+import type {
+	CallTranscriptionEagerEvent,
+	VoiceConnectionOptions,
+	VoiceMessage,
+	VoiceMessageType,
+} from "./types";
 
 type VoiceEventCallback = (message: VoiceMessage) => void;
 type ErrorCallback = (error: Error) => void;
@@ -48,12 +53,18 @@ export class VoiceConnection {
 		this.connect();
 	}
 
-	public on<K extends keyof VoiceListenerMap>(event: K, callback: VoiceListenerMap[K]): this {
+	public on<K extends keyof VoiceListenerMap>(
+		event: K,
+		callback: VoiceListenerMap[K],
+	): this {
 		(this.listeners[event] as VoiceListenerMap[K][]).push(callback);
 		return this;
 	}
 
-	public off<K extends keyof VoiceListenerMap>(event: K, callback: VoiceListenerMap[K]): this {
+	public off<K extends keyof VoiceListenerMap>(
+		event: K,
+		callback: VoiceListenerMap[K],
+	): this {
 		const list = this.listeners[event] as VoiceListenerMap[K][];
 		const idx = list.indexOf(callback);
 		if (idx !== -1) list.splice(idx, 1);
@@ -73,7 +84,10 @@ export class VoiceConnection {
 	}
 
 	/** Create an outbound call. */
-	public createCall(to: string, options?: { tier?: string; greeting?: string; fromNumber?: string }): void {
+	public createCall(
+		to: string,
+		options?: { tier?: string; greeting?: string; fromNumber?: string },
+	): void {
 		this.send("call.create", { to, ...options });
 	}
 
@@ -97,7 +111,10 @@ export class VoiceConnection {
 	 * iterable on barge-in (the server cancels ElevenLabs server-side on
 	 * call.interrupted).
 	 */
-	public async speakStream(callId: string, chunks: AsyncIterable<string>): Promise<void> {
+	public async speakStream(
+		callId: string,
+		chunks: AsyncIterable<string>,
+	): Promise<void> {
 		for await (const text of chunks) {
 			if (!text) continue;
 			this.send("call.speak.chunk", { callId, text });
@@ -146,7 +163,10 @@ export class VoiceConnection {
 		this.stopPing();
 		if (this.ws) {
 			this.ws.removeAllListeners();
-			if (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING) {
+			if (
+				this.ws.readyState === WebSocket.OPEN ||
+				this.ws.readyState === WebSocket.CONNECTING
+			) {
 				this.ws.close(1000, "Client closed");
 			}
 			this.ws = null;

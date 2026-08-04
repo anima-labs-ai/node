@@ -1,8 +1,11 @@
-import { describe, test, expect } from "bun:test";
+import { describe, expect, test } from "bun:test";
 import { PageIterator } from "../pagination";
 import type { PaginatedResponse } from "../types";
 
-function makePage<T>(items: T[], nextCursor: string | null): PaginatedResponse<T> {
+function makePage<T>(
+	items: T[],
+	nextCursor: string | null,
+): PaginatedResponse<T> {
 	return {
 		items,
 		pagination: { nextCursor, hasMore: nextCursor !== null },

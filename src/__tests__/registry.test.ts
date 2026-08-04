@@ -20,9 +20,15 @@ import { RegistryResource } from "../resources/registry";
 const DID_WITH_PORT = "did:web:localhost%3A3000:agents:a1";
 const PLAIN_DID = "did:web:agents.useanima.sh:org1:agent123";
 
-function mockClient(): { client: RequestClient; requestMock: ReturnType<typeof mock> } {
+function mockClient(): {
+	client: RequestClient;
+	requestMock: ReturnType<typeof mock>;
+} {
 	const requestMock = mock(async () => ({ did: PLAIN_DID }));
-	return { client: { request: requestMock as RequestClient["request"] }, requestMock };
+	return {
+		client: { request: requestMock as RequestClient["request"] },
+		requestMock,
+	};
 }
 
 /** The path the SDK actually sent, as the server's router would see it. */
@@ -69,7 +75,9 @@ describe("registry DID path encoding", () => {
 
 		const path = sentPath(requestMock);
 		expect(path).toContain("%253A3000");
-		expect(decodeURIComponent(path.replace("/registry/agents/", ""))).toBe(DID_WITH_PORT);
+		expect(decodeURIComponent(path.replace("/registry/agents/", ""))).toBe(
+			DID_WITH_PORT,
+		);
 	});
 
 	/** A stray slash would otherwise split the path and hit a different route. */

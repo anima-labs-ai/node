@@ -1,23 +1,23 @@
 import type { RequestClient } from "../client";
 import type {
-	PaginatedResponse,
-	ComplianceControlOutput,
 	ComplianceControlListParams,
+	ComplianceControlOutput,
 	ComplianceControlStatusInput,
-	SeedFrameworkInput,
-	SeedFrameworkOutput,
-	ComplianceReportOutput,
-	GenerateReportInput,
-	ComplianceReportListParams,
-	ExportReportInput,
-	ExportReportOutput,
-	ListTemplatesOutput,
 	ComplianceDashboardOutput,
-	DsarOutput,
+	ComplianceReportListParams,
+	ComplianceReportOutput,
 	CreateDsarInput,
 	DsarListParams,
-	UpdateDsarStatusInput,
+	DsarOutput,
+	ExportReportInput,
+	ExportReportOutput,
+	GenerateReportInput,
+	ListTemplatesOutput,
+	PaginatedResponse,
 	RequestOptions,
+	SeedFrameworkInput,
+	SeedFrameworkOutput,
+	UpdateDsarStatusInput,
 } from "../types";
 
 /**
@@ -29,7 +29,11 @@ import type {
 export class ComplianceResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public listControls(orgId: string, params?: ComplianceControlListParams, options?: RequestOptions): Promise<PaginatedResponse<ComplianceControlOutput>> {
+	public listControls(
+		orgId: string,
+		params?: ComplianceControlListParams,
+		options?: RequestOptions,
+	): Promise<PaginatedResponse<ComplianceControlOutput>> {
 		return this.client.request<PaginatedResponse<ComplianceControlOutput>>(
 			"GET",
 			`/orgs/${orgId}/compliance/controls`,
@@ -39,7 +43,11 @@ export class ComplianceResource {
 		);
 	}
 
-	public getControl(orgId: string, controlId: string, options?: RequestOptions): Promise<ComplianceControlOutput> {
+	public getControl(
+		orgId: string,
+		controlId: string,
+		options?: RequestOptions,
+	): Promise<ComplianceControlOutput> {
 		return this.client.request<ComplianceControlOutput>(
 			"GET",
 			`/orgs/${orgId}/compliance/controls/${controlId}`,
@@ -49,7 +57,12 @@ export class ComplianceResource {
 		);
 	}
 
-	public updateControlStatus(orgId: string, controlId: string, input: ComplianceControlStatusInput, options?: RequestOptions): Promise<ComplianceControlOutput> {
+	public updateControlStatus(
+		orgId: string,
+		controlId: string,
+		input: ComplianceControlStatusInput,
+		options?: RequestOptions,
+	): Promise<ComplianceControlOutput> {
 		return this.client.request<ComplianceControlOutput>(
 			"PATCH",
 			`/orgs/${orgId}/compliance/controls/${controlId}`,
@@ -59,7 +72,11 @@ export class ComplianceResource {
 		);
 	}
 
-	public seedFramework(orgId: string, input: SeedFrameworkInput, options?: RequestOptions): Promise<SeedFrameworkOutput> {
+	public seedFramework(
+		orgId: string,
+		input: SeedFrameworkInput,
+		options?: RequestOptions,
+	): Promise<SeedFrameworkOutput> {
 		return this.client.request<SeedFrameworkOutput>(
 			"POST",
 			`/orgs/${orgId}/compliance/seed`,
@@ -69,7 +86,10 @@ export class ComplianceResource {
 		);
 	}
 
-	public listTemplates(orgId: string, options?: RequestOptions): Promise<ListTemplatesOutput> {
+	public listTemplates(
+		orgId: string,
+		options?: RequestOptions,
+	): Promise<ListTemplatesOutput> {
 		return this.client.request<ListTemplatesOutput>(
 			"GET",
 			`/orgs/${orgId}/compliance/templates`,
@@ -79,7 +99,11 @@ export class ComplianceResource {
 		);
 	}
 
-	public generateReport(orgId: string, input: GenerateReportInput, options?: RequestOptions): Promise<ComplianceReportOutput> {
+	public generateReport(
+		orgId: string,
+		input: GenerateReportInput,
+		options?: RequestOptions,
+	): Promise<ComplianceReportOutput> {
 		return this.client.request<ComplianceReportOutput>(
 			"POST",
 			`/orgs/${orgId}/compliance/reports`,
@@ -89,7 +113,11 @@ export class ComplianceResource {
 		);
 	}
 
-	public listReports(orgId: string, params?: ComplianceReportListParams, options?: RequestOptions): Promise<PaginatedResponse<ComplianceReportOutput>> {
+	public listReports(
+		orgId: string,
+		params?: ComplianceReportListParams,
+		options?: RequestOptions,
+	): Promise<PaginatedResponse<ComplianceReportOutput>> {
 		return this.client.request<PaginatedResponse<ComplianceReportOutput>>(
 			"GET",
 			`/orgs/${orgId}/compliance/reports`,
@@ -99,7 +127,11 @@ export class ComplianceResource {
 		);
 	}
 
-	public getReport(orgId: string, reportId: string, options?: RequestOptions): Promise<ComplianceReportOutput> {
+	public getReport(
+		orgId: string,
+		reportId: string,
+		options?: RequestOptions,
+	): Promise<ComplianceReportOutput> {
 		return this.client.request<ComplianceReportOutput>(
 			"GET",
 			`/orgs/${orgId}/compliance/reports/${reportId}`,
@@ -116,7 +148,12 @@ export class ComplianceResource {
 	 * Replaces `downloadReport`, which issued a GET to a `/download` sub-path
 	 * that the API does not serve.
 	 */
-	public exportReport(orgId: string, reportId: string, input?: ExportReportInput, options?: RequestOptions): Promise<ExportReportOutput> {
+	public exportReport(
+		orgId: string,
+		reportId: string,
+		input?: ExportReportInput,
+		options?: RequestOptions,
+	): Promise<ExportReportOutput> {
 		return this.client.request<ExportReportOutput>(
 			"POST",
 			`/orgs/${orgId}/compliance/reports/${reportId}/export`,
@@ -126,7 +163,11 @@ export class ComplianceResource {
 		);
 	}
 
-	public deleteReport(orgId: string, reportId: string, options?: RequestOptions): Promise<void> {
+	public deleteReport(
+		orgId: string,
+		reportId: string,
+		options?: RequestOptions,
+	): Promise<void> {
 		return this.client.request<void>(
 			"DELETE",
 			`/orgs/${orgId}/compliance/reports/${reportId}`,
@@ -136,7 +177,10 @@ export class ComplianceResource {
 		);
 	}
 
-	public getDashboard(orgId: string, options?: RequestOptions): Promise<ComplianceDashboardOutput> {
+	public getDashboard(
+		orgId: string,
+		options?: RequestOptions,
+	): Promise<ComplianceDashboardOutput> {
 		return this.client.request<ComplianceDashboardOutput>(
 			"GET",
 			`/orgs/${orgId}/compliance/dashboard`,
@@ -146,7 +190,11 @@ export class ComplianceResource {
 		);
 	}
 
-	public createDsar(orgId: string, input: CreateDsarInput, options?: RequestOptions): Promise<DsarOutput> {
+	public createDsar(
+		orgId: string,
+		input: CreateDsarInput,
+		options?: RequestOptions,
+	): Promise<DsarOutput> {
 		return this.client.request<DsarOutput>(
 			"POST",
 			`/orgs/${orgId}/compliance/dsars`,
@@ -156,7 +204,11 @@ export class ComplianceResource {
 		);
 	}
 
-	public listDsars(orgId: string, params?: DsarListParams, options?: RequestOptions): Promise<PaginatedResponse<DsarOutput>> {
+	public listDsars(
+		orgId: string,
+		params?: DsarListParams,
+		options?: RequestOptions,
+	): Promise<PaginatedResponse<DsarOutput>> {
 		return this.client.request<PaginatedResponse<DsarOutput>>(
 			"GET",
 			`/orgs/${orgId}/compliance/dsars`,
@@ -166,7 +218,11 @@ export class ComplianceResource {
 		);
 	}
 
-	public getDsar(orgId: string, dsarId: string, options?: RequestOptions): Promise<DsarOutput> {
+	public getDsar(
+		orgId: string,
+		dsarId: string,
+		options?: RequestOptions,
+	): Promise<DsarOutput> {
 		return this.client.request<DsarOutput>(
 			"GET",
 			`/orgs/${orgId}/compliance/dsars/${dsarId}`,
@@ -182,7 +238,12 @@ export class ComplianceResource {
 	 * Replaces `completeDsar`, which POSTed to a `/complete` sub-path that does
 	 * not exist. The API models this as a PATCH carrying the new status.
 	 */
-	public updateDsarStatus(orgId: string, dsarId: string, input: UpdateDsarStatusInput, options?: RequestOptions): Promise<DsarOutput> {
+	public updateDsarStatus(
+		orgId: string,
+		dsarId: string,
+		input: UpdateDsarStatusInput,
+		options?: RequestOptions,
+	): Promise<DsarOutput> {
 		return this.client.request<DsarOutput>(
 			"PATCH",
 			`/orgs/${orgId}/compliance/dsars/${dsarId}`,
@@ -192,7 +253,9 @@ export class ComplianceResource {
 		);
 	}
 
-	private toControlQuery(params?: ComplianceControlListParams): Record<string, string> {
+	private toControlQuery(
+		params?: ComplianceControlListParams,
+	): Record<string, string> {
 		const query: Record<string, string> = {};
 		if (!params) return query;
 		if (params.framework) query.framework = params.framework;
@@ -203,7 +266,9 @@ export class ComplianceResource {
 		return query;
 	}
 
-	private toReportQuery(params?: ComplianceReportListParams): Record<string, string> {
+	private toReportQuery(
+		params?: ComplianceReportListParams,
+	): Record<string, string> {
 		const query: Record<string, string> = {};
 		if (!params) return query;
 		if (params.type) query.type = params.type;

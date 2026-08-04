@@ -5,7 +5,10 @@ import type { WebhookEvent, WebhookVerificationOptions } from "./types";
 
 const DEFAULT_TOLERANCE_SECONDS = 300;
 
-function getTimestampAndSignature(signatureHeader: string): { timestamp: number; signature: string } {
+function getTimestampAndSignature(signatureHeader: string): {
+	timestamp: number;
+	signature: string;
+} {
 	const pieces = signatureHeader.split(",").map((part) => part.trim());
 	let timestamp: number | null = null;
 	let signature: string | null = null;
@@ -35,7 +38,10 @@ function toPayloadString(payload: string | Buffer): string {
 	return typeof payload === "string" ? payload : payload.toString("utf8");
 }
 
-function buildSignedPayload(payload: string | Buffer, timestamp: number): string {
+function buildSignedPayload(
+	payload: string | Buffer,
+	timestamp: number,
+): string {
 	return `${timestamp}.${toPayloadString(payload)}`;
 }
 
@@ -47,7 +53,8 @@ export function verifyWebhookSignature(
 ): boolean {
 	const { timestamp, signature } = getTimestampAndSignature(signatureHeader);
 	const now = options?.now ?? Date.now();
-	const toleranceSeconds = options?.toleranceSeconds ?? DEFAULT_TOLERANCE_SECONDS;
+	const toleranceSeconds =
+		options?.toleranceSeconds ?? DEFAULT_TOLERANCE_SECONDS;
 
 	const ageSeconds = Math.floor(Math.abs(now - timestamp * 1000) / 1000);
 	if (ageSeconds > toleranceSeconds) {
@@ -74,7 +81,12 @@ export function constructWebhookEvent(
 	secret: string,
 	options?: WebhookVerificationOptions,
 ): WebhookEvent {
-	const isValid = verifyWebhookSignature(payload, signatureHeader, secret, options);
+	const isValid = verifyWebhookSignature(
+		payload,
+		signatureHeader,
+		secret,
+		options,
+	);
 	if (!isValid) {
 		throw new ValidationError("Invalid webhook signature");
 	}

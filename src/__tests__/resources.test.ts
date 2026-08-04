@@ -3,20 +3,20 @@ import { describe, expect, mock, test } from "bun:test";
 import type { RequestClient } from "../client";
 import { A2AResource } from "../resources/a2a";
 import { AgentsResource } from "../resources/agents";
+import { CallsResource } from "../resources/calls";
 import { DomainsResource } from "../resources/domains";
 import { DraftsResource } from "../resources/drafts";
 import { EmailsResource } from "../resources/emails";
+import { ExtensionResource } from "../resources/extension";
 import { IdentityResource } from "../resources/identity";
 import { InboxesResource } from "../resources/inboxes";
 import { MessagesResource } from "../resources/messages";
 import { OrganizationsResource } from "../resources/organizations";
 import { PhonesResource } from "../resources/phones";
 import { SecurityResource } from "../resources/security";
-import { WebhooksResource } from "../resources/webhooks";
-import { VoicesResource } from "../resources/voices";
-import { CallsResource } from "../resources/calls";
-import { ExtensionResource } from "../resources/extension";
 import { VaultResource } from "../resources/vault";
+import { VoicesResource } from "../resources/voices";
+import { WebhooksResource } from "../resources/webhooks";
 
 function createMockClient(): {
 	client: RequestClient;
@@ -123,10 +123,15 @@ describe("resource methods", () => {
 
 		// PageIterator is awaitable (thenable) — awaiting fetches the first page.
 		await resource.listIdentities({ status: "ACTIVE", limit: 10 });
-		expect(requestMock).toHaveBeenCalledWith("GET", "/vault/identities", undefined, {
-			status: "ACTIVE",
-			limit: "10",
-		});
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/vault/identities",
+			undefined,
+			{
+				status: "ACTIVE",
+				limit: "10",
+			},
+		);
 
 		await resource.audit({ credentialId: "cred_1", action: "broker_use" });
 		expect(requestMock).toHaveBeenCalledWith("GET", "/vault/audit", undefined, {
@@ -476,11 +481,16 @@ describe("resource methods", () => {
 			undefined,
 			undefined,
 		);
-		expect(requestMock).toHaveBeenCalledWith("GET", "/email/drafts", undefined, {
-			agentId: "agent_1",
-			limit: "10",
-			cursor: "c1",
-		});
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/email/drafts",
+			undefined,
+			{
+				agentId: "agent_1",
+				limit: "10",
+				cursor: "c1",
+			},
+		);
 		expect(requestMock).toHaveBeenCalledWith(
 			"POST",
 			"/email/drafts/draft_1/send",
@@ -499,7 +509,9 @@ describe("resource methods", () => {
 
 	test("drafts delete resolves to the deleted draft (contract returns it, not void)", async () => {
 		const requestMock = mock(async () => ({ id: "draft_1", subject: "WIP" }));
-		const client: RequestClient = { request: requestMock as RequestClient["request"] };
+		const client: RequestClient = {
+			request: requestMock as RequestClient["request"],
+		};
 		const resource = new DraftsResource(client);
 
 		const deleted = await resource.delete("draft_1");
@@ -511,7 +523,11 @@ describe("resource methods", () => {
 		const { client, requestMock } = createMockClient();
 		const resource = new InboxesResource(client);
 
-		await resource.create({ username: "support", displayName: "Support", agentId: "agent_1" });
+		await resource.create({
+			username: "support",
+			displayName: "Support",
+			agentId: "agent_1",
+		});
 		await resource.get("inbox_1");
 		await resource.list({ query: "support", limit: 10, cursor: "c1" });
 		await resource.update("inbox_1", { displayName: "Sales", agentId: null });
@@ -558,7 +574,13 @@ describe("resource methods", () => {
 
 		await resource.create();
 
-		expect(requestMock).toHaveBeenCalledWith("POST", "/inboxes", {}, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/inboxes",
+			{},
+			undefined,
+			undefined,
+		);
 	});
 
 	test("sendEmail passes attachments and threading fields through to the wire", async () => {
@@ -574,7 +596,11 @@ describe("resource methods", () => {
 			subject: "Report attached",
 			body: "See attachment",
 			attachments: [
-				{ filename: "report.pdf", contentType: "application/pdf", content: "JVBERi0=" },
+				{
+					filename: "report.pdf",
+					contentType: "application/pdf",
+					content: "JVBERi0=",
+				},
 				{ url: "https://files.example.com/big.pdf", filename: "big.pdf" },
 			],
 			inReplyTo: "<msg-1@agents.useanima.sh>",
@@ -1080,15 +1106,33 @@ describe("resource methods", () => {
 
 		// Master-key call: agentId + ttl both provided.
 		await resource.connect({ agentId: "agent_1", ttl: "15m" });
-		expect(requestMock).toHaveBeenCalledWith("POST", "/extension/connect", { agentId: "agent_1", ttl: "15m" }, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/extension/connect",
+			{ agentId: "agent_1", ttl: "15m" },
+			undefined,
+			undefined,
+		);
 
 		// Agent-key call: no input — the body must be empty, not { agentId: undefined }.
 		await resource.connect();
-		expect(requestMock).toHaveBeenCalledWith("POST", "/extension/connect", {}, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/extension/connect",
+			{},
+			undefined,
+			undefined,
+		);
 
 		// Only ttl provided — agentId key must be absent from the body.
 		await resource.connect({ ttl: "session" });
-		expect(requestMock).toHaveBeenCalledWith("POST", "/extension/connect", { ttl: "session" }, undefined, undefined);
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/extension/connect",
+			{ ttl: "session" },
+			undefined,
+			undefined,
+		);
 	});
 
 	test("extension resource surfaces the connectUrl from the response", async () => {
@@ -1100,7 +1144,9 @@ describe("resource methods", () => {
 			policy: "session" as const,
 		};
 		const requestMock = mock(async () => response);
-		const client: RequestClient = { request: requestMock as RequestClient["request"] };
+		const client: RequestClient = {
+			request: requestMock as RequestClient["request"],
+		};
 		const resource = new ExtensionResource(client);
 
 		const result = await resource.connect({ agentId: "agent_1" });
@@ -1114,12 +1160,21 @@ describe("resource methods", () => {
 		const { client, requestMock } = createMockClient();
 		const resource = new A2AResource(client);
 
-		await resource.dispatch("ag_1", { toDid: "did:web:example.com", type: "ping", input: {} });
+		await resource.dispatch("ag_1", {
+			toDid: "did:web:example.com",
+			type: "ping",
+			input: {},
+		});
 
 		expect(requestMock).toHaveBeenCalledWith(
 			"POST",
 			"/agents/ag_1/a2a/dispatch",
-			{ fromAgentId: "ag_1", toDid: "did:web:example.com", type: "ping", input: {} },
+			{
+				fromAgentId: "ag_1",
+				toDid: "did:web:example.com",
+				type: "ping",
+				input: {},
+			},
 			undefined,
 			undefined,
 		);
@@ -1133,7 +1188,10 @@ describe("messages.updateLabels (B3)", () => {
 	test("PATCHes the labels route with both operations", async () => {
 		const { client, requestMock } = createMockClient();
 		const messages = new MessagesResource(client);
-		await messages.updateLabels("msg_1", { addLabels: ["read"], removeLabels: ["unread"] });
+		await messages.updateLabels("msg_1", {
+			addLabels: ["read"],
+			removeLabels: ["unread"],
+		});
 
 		expect(requestMock).toHaveBeenCalledWith(
 			"PATCH",
@@ -1164,8 +1222,8 @@ describe("messages.updateLabels (B3)", () => {
 
 		// `{ addLabels: [] }` reads like "add nothing" — it must be refused for the
 		// same reason `{}` is, not sent as a request that changes nothing.
-		expect(() => messages.updateLabels("msg_1", { addLabels: [], removeLabels: [] })).toThrow(
-			/at least one of addLabels or removeLabels/,
-		);
+		expect(() =>
+			messages.updateLabels("msg_1", { addLabels: [], removeLabels: [] }),
+		).toThrow(/at least one of addLabels or removeLabels/);
 	});
 });

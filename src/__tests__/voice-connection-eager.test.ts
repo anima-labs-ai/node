@@ -7,9 +7,8 @@
 
 import { describe, expect, test } from "bun:test";
 import WebSocket from "ws";
-
-import { VoiceConnection } from "../voice-connection";
 import type { CallTranscriptionEagerEvent } from "../types";
+import { VoiceConnection } from "../voice-connection";
 
 // ---------------------------------------------------------------------------
 // Mock WebSocket that captures registered handlers so we can trigger them

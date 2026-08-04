@@ -30,15 +30,21 @@
  *
  *   ANIMA_LIVE_API_KEY=mk_...  # master key sees the most surface
  *   ANIMA_LIVE_ORG_ID=org_...  # required for org-scoped probes
+ *   ANIMA_LIVE_AGENT_ID=...     # required for agent-scoped vault probes
  *   ANIMA_LIVE_BASE_URL=...    # optional, defaults to production
  *   bun test src/__tests__/live-conformance.test.ts
  *
  * Without ANIMA_LIVE_API_KEY every probe skips, so normal CI is unaffected.
  */
 import { describe, expect, test } from "bun:test";
-
+import {
+	AuthError,
+	InternalServerError,
+	NotFoundError,
+	RateLimitError,
+	ValidationError,
+} from "../errors";
 import { Anima } from "../index";
-import { AuthError, InternalServerError, NotFoundError, RateLimitError, ValidationError } from "../errors";
 
 const apiKey = process.env.ANIMA_LIVE_API_KEY;
 const orgId = process.env.ANIMA_LIVE_ORG_ID;
@@ -46,6 +52,12 @@ const baseUrl = process.env.ANIMA_LIVE_BASE_URL;
 
 const live = apiKey ? test : test.skip;
 const orgScoped = apiKey && orgId ? test : test.skip;
+// Several vault routes are agent-scoped and REJECT a master key that does not
+// name an agent ("agentId is required when using a master key"). Without an
+// agent id there is no way to probe them at all, so they skip rather than fail
+// for a reason that has nothing to do with conformance.
+const agentId = process.env.ANIMA_LIVE_AGENT_ID;
+const agentScoped = apiKey && agentId ? test : test.skip;
 
 const anima = new Anima({
 	apiKey: apiKey ?? "unset",
@@ -80,7 +92,21 @@ async function probe(call: () => PromiseLike<unknown>): Promise<void> {
 		if (err instanceof AuthError) return;
 		if (err instanceof RateLimitError) return;
 		if (err instanceof InternalServerError) {
-			throw new Error(`5xx from the live API (likely not the SDK's fault): ${err.message}`);
+			// A vault route that reaches `bw serve` and finds nothing listening
+			// has already proved everything conformance cares about: the route
+			// exists, auth passed, and the API accepted the request the SDK
+			// built. The missing piece is the storage backend, which is a
+			// property of the deployment — a local API without Vaultwarden, or
+			// one mid-restart. Failing here would say "the SDK is wrong" about
+			// an SDK that did everything right.
+			//
+			// Narrow on purpose: only the connectivity message. Any other 5xx
+			// still fails, including a bw-serve error that indicates a real
+			// fault rather than an absent process.
+			if (err.message.includes("bw-serve: Unable to connect")) return;
+			throw new Error(
+				`5xx from the live API (likely not the SDK's fault): ${err.message}`,
+			);
 		}
 		throw err;
 	}
@@ -140,6 +166,46 @@ describe("live conformance — vault", () => {
 	live("vault.credentialRequestList", async () => {
 		await probe(() => anima.vault.credentialRequestList({ limit: 1 }));
 	});
+
+	// Read-only, and cheap. These build their query params by hand, which is
+	// exactly the shape of bug a mock cannot catch — a wrong param name reads
+	// as an empty result, not an error.
+	agentScoped("vault.status", async () => {
+		await probe(() => anima.vault.status(agentId));
+	});
+
+	agentScoped("vault.listShares — granted", async () => {
+		await probe(() => anima.vault.listShares(agentId, "granted"));
+	});
+
+	agentScoped("vault.listShares — received", async () => {
+		await probe(() => anima.vault.listShares(agentId, "received"));
+	});
+});
+
+describe("live conformance — provisioning requests", () => {
+	live("provisioningRequests.list", async () => {
+		await probe(async () => {
+			const page = await anima.provisioningRequests.list({ limit: 1 });
+			expect(Array.isArray(page.items)).toBe(true);
+			expect(page.pagination).toBeDefined();
+		});
+	});
+
+	// The status filter is a server-side enum. Sending the wrong casing is the
+	// classic drift this whole file exists to catch — the API answers 400, and
+	// no fixture ever would.
+	live("provisioningRequests.list — status filter", async () => {
+		await probe(() =>
+			anima.provisioningRequests.list({ status: "PENDING", limit: 1 }),
+		);
+	});
+
+	live("provisioningRequests.list — resource filter", async () => {
+		await probe(() =>
+			anima.provisioningRequests.list({ resource: "VAULT", limit: 1 }),
+		);
+	});
 });
 
 describe("live conformance — org-scoped (the surface that was most wrong)", () => {
@@ -156,7 +222,9 @@ describe("live conformance — org-scoped (the surface that was most wrong)", ()
 	});
 
 	orgScoped("security.listEvents", async () => {
-		await probe(() => anima.security.listEvents({ orgId: orgId as string, limit: 1 }));
+		await probe(() =>
+			anima.security.listEvents({ orgId: orgId as string, limit: 1 }),
+		);
 	});
 
 	orgScoped("security.getScannerStatus", async () => {
@@ -170,7 +238,9 @@ describe("live conformance — org-scoped (the surface that was most wrong)", ()
 	});
 
 	orgScoped("compliance.listControls", async () => {
-		await probe(() => anima.compliance.listControls(orgId as string, { limit: 1 }));
+		await probe(() =>
+			anima.compliance.listControls(orgId as string, { limit: 1 }),
+		);
 	});
 
 	orgScoped("compliance.listTemplates", async () => {
@@ -178,11 +248,15 @@ describe("live conformance — org-scoped (the surface that was most wrong)", ()
 	});
 
 	orgScoped("compliance.listReports", async () => {
-		await probe(() => anima.compliance.listReports(orgId as string, { limit: 1 }));
+		await probe(() =>
+			anima.compliance.listReports(orgId as string, { limit: 1 }),
+		);
 	});
 
 	orgScoped("compliance.listDsars", async () => {
-		await probe(() => anima.compliance.listDsars(orgId as string, { limit: 1 }));
+		await probe(() =>
+			anima.compliance.listDsars(orgId as string, { limit: 1 }),
+		);
 	});
 });
 
@@ -208,7 +282,11 @@ describe("live conformance — declared enums are accepted", () => {
 	for (const severity of severities) {
 		orgScoped(`security severity ${severity}`, async () => {
 			await probe(() =>
-				anima.security.listEvents({ orgId: orgId as string, severity, limit: 1 }),
+				anima.security.listEvents({
+					orgId: orgId as string,
+					severity,
+					limit: 1,
+				}),
 			);
 		});
 	}

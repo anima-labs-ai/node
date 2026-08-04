@@ -71,7 +71,9 @@ describe("Request/Response events", () => {
 	test("request event only emitted once even with retries", async () => {
 		fetchMock
 			.mockResolvedValueOnce(new Response("", { status: 500 }))
-			.mockResolvedValueOnce(new Response(JSON.stringify({ ok: true }), { status: 200 }));
+			.mockResolvedValueOnce(
+				new Response(JSON.stringify({ ok: true }), { status: 200 }),
+			);
 
 		const events: RequestEvent[] = [];
 		const client = new AnimaClient({ apiKey: "sk_test", maxRetries: 1 });

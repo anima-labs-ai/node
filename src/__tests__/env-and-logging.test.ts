@@ -33,7 +33,9 @@ describe("Environment variable fallback", () => {
 		await client.request("GET", "/agents");
 
 		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-		expect((init.headers as Record<string, string>).Authorization).toBe("Bearer sk_env_test");
+		expect((init.headers as Record<string, string>).Authorization).toBe(
+			"Bearer sk_env_test",
+		);
 	});
 
 	test("explicit apiKey takes precedence over env var", async () => {
@@ -46,7 +48,9 @@ describe("Environment variable fallback", () => {
 		await client.request("GET", "/agents");
 
 		const [, init] = fetchMock.mock.calls[0] as [string, RequestInit];
-		expect((init.headers as Record<string, string>).Authorization).toBe("Bearer sk_explicit");
+		expect((init.headers as Record<string, string>).Authorization).toBe(
+			"Bearer sk_explicit",
+		);
 	});
 
 	test("throws when no apiKey and no env var", () => {
@@ -100,7 +104,9 @@ describe("Environment variable fallback", () => {
 			new Response(JSON.stringify({ ok: true }), { status: 200 }),
 		);
 
-		const client = new AnimaClient({ baseUrl: "https://trailing.example.com/" });
+		const client = new AnimaClient({
+			baseUrl: "https://trailing.example.com/",
+		});
 		await client.request("GET", "/agents");
 
 		const [url] = fetchMock.mock.calls[0] as [string, RequestInit];

@@ -1,26 +1,27 @@
 import { AnimaClient } from "./client";
+import { A2AResource } from "./resources/a2a";
 import { AddressesResource } from "./resources/addresses";
 import { AgentsResource } from "./resources/agents";
+import { AnomalyResource } from "./resources/anomaly";
+import { AuditResource } from "./resources/audit";
+import { CallsResource } from "./resources/calls";
+import { ComplianceResource } from "./resources/compliance";
 import { DomainsResource } from "./resources/domains";
 import { DraftsResource } from "./resources/drafts";
 import { EmailsResource } from "./resources/emails";
 import { EventsResource } from "./resources/events";
+import { ExtensionResource } from "./resources/extension";
 import { IdentityResource } from "./resources/identity";
 import { InboxesResource } from "./resources/inboxes";
 import { MessagesResource } from "./resources/messages";
 import { OrganizationsResource } from "./resources/organizations";
 import { PhonesResource } from "./resources/phones";
+import { ProvisioningRequestsResource } from "./resources/provisioning-requests";
 import { RegistryResource } from "./resources/registry";
 import { SecurityResource } from "./resources/security";
 import { VaultResource } from "./resources/vault";
-import { WebhooksResource } from "./resources/webhooks";
-import { A2AResource } from "./resources/a2a";
-import { AuditResource } from "./resources/audit";
-import { ComplianceResource } from "./resources/compliance";
-import { AnomalyResource } from "./resources/anomaly";
 import { VoicesResource } from "./resources/voices";
-import { CallsResource } from "./resources/calls";
-import { ExtensionResource } from "./resources/extension";
+import { WebhooksResource } from "./resources/webhooks";
 import type { AnimaClientOptions, RequestEvent, ResponseEvent } from "./types";
 import { constructWebhookEvent, verifyWebhookSignature } from "./webhooks";
 
@@ -43,6 +44,7 @@ export class Anima {
 	public readonly webhooks: WebhooksResource;
 	public readonly security: SecurityResource;
 	public readonly vault: VaultResource;
+	public readonly provisioningRequests: ProvisioningRequestsResource;
 	public readonly events: EventsResource;
 	public readonly a2a: A2AResource;
 	public readonly audit: AuditResource;
@@ -61,7 +63,11 @@ export class Anima {
 		this.client = new AnimaClient(options);
 
 		const apiKey = options.apiKey ?? process.env.ANIMA_API_KEY ?? "";
-		const baseUrl = (options.baseUrl ?? process.env.ANIMA_API_URL ?? DEFAULT_BASE_URL).replace(/\/+$/, "");
+		const baseUrl = (
+			options.baseUrl ??
+			process.env.ANIMA_API_URL ??
+			DEFAULT_BASE_URL
+		).replace(/\/+$/, "");
 
 		this.addresses = new AddressesResource(this.client);
 		this.organizations = new OrganizationsResource(this.client);
@@ -77,6 +83,7 @@ export class Anima {
 		this.webhooks = new WebhooksResource(this.client);
 		this.security = new SecurityResource(this.client);
 		this.vault = new VaultResource(this.client);
+		this.provisioningRequests = new ProvisioningRequestsResource(this.client);
 		this.events = new EventsResource(apiKey, baseUrl);
 		this.a2a = new A2AResource(this.client);
 		this.audit = new AuditResource(this.client);
@@ -89,21 +96,32 @@ export class Anima {
 
 	public on(event: "request", listener: (data: RequestEvent) => void): this;
 	public on(event: "response", listener: (data: ResponseEvent) => void): this;
-	public on(event: "request" | "response", listener: (data: never) => void): this {
-		this.client.on(event as "request", listener as (data: RequestEvent) => void);
+	public on(
+		event: "request" | "response",
+		listener: (data: never) => void,
+	): this {
+		this.client.on(
+			event as "request",
+			listener as (data: RequestEvent) => void,
+		);
 		return this;
 	}
 
 	public off(event: "request", listener: (data: RequestEvent) => void): this;
 	public off(event: "response", listener: (data: ResponseEvent) => void): this;
-	public off(event: "request" | "response", listener: (data: never) => void): this {
-		this.client.off(event as "request", listener as (data: RequestEvent) => void);
+	public off(
+		event: "request" | "response",
+		listener: (data: never) => void,
+	): this {
+		this.client.off(
+			event as "request",
+			listener as (data: RequestEvent) => void,
+		);
 		return this;
 	}
 }
 
 export { AnimaClient } from "./client";
-export { PageIterator } from "./pagination";
 export {
 	AnimaError,
 	APIError,
@@ -114,7 +132,8 @@ export {
 	RateLimitError,
 	ValidationError,
 } from "./errors";
-export { AnimaEventStream, EventsResource } from "./resources/events";
 export { webhookMiddleware } from "./middleware";
-export { VoiceConnection } from "./voice-connection";
+export { PageIterator } from "./pagination";
+export { AnimaEventStream, EventsResource } from "./resources/events";
 export * from "./types";
+export { VoiceConnection } from "./voice-connection";

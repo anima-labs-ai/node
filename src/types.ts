@@ -85,7 +85,11 @@ export interface DateRange {
 export type Tier = "FREE" | "STARTER" | "GROWTH" | "ENTERPRISE";
 export type AgentStatus = "ACTIVE" | "SUSPENDED" | "DELETED";
 export type PhoneProvider = "TELNYX";
-export type TenDlcStatus = "PENDING" | "REGISTERED" | "REJECTED" | "NOT_REQUIRED";
+export type TenDlcStatus =
+	| "PENDING"
+	| "REGISTERED"
+	| "REJECTED"
+	| "NOT_REQUIRED";
 
 export interface CreateOrganizationInput {
 	name: string;
@@ -306,7 +310,9 @@ export interface MessageLabelFilters {
 	includeSpam?: boolean;
 }
 
-export interface MessageListParams extends PaginationInput, MessageLabelFilters {
+export interface MessageListParams
+	extends PaginationInput,
+		MessageLabelFilters {
 	agentId?: string;
 	threadId?: string;
 	channel?: MessageChannel;
@@ -1411,7 +1417,6 @@ export interface RegistrySearchParams extends PaginationInput {
 // resources went with them.
 // ---------------------------------------------------------------------------
 
-
 // ---------------------------------------------------------------------------
 // A2A (Agent-to-Agent Protocol)
 // ---------------------------------------------------------------------------
@@ -1545,9 +1550,18 @@ export type ComplianceReportType =
 	| "ACCESS_REVIEW"
 	| "AUDIT_EXPORT"
 	| "GDPR_DSAR";
-export type ComplianceReportStatus = "PENDING" | "GENERATING" | "COMPLETED" | "FAILED";
+export type ComplianceReportStatus =
+	| "PENDING"
+	| "GENERATING"
+	| "COMPLETED"
+	| "FAILED";
 export type ComplianceReportFormat = "JSON" | "CSV" | "PDF";
-export type DsarType = "ACCESS" | "DELETE" | "RECTIFY" | "PORTABILITY" | "RESTRICT";
+export type DsarType =
+	| "ACCESS"
+	| "DELETE"
+	| "RECTIFY"
+	| "PORTABILITY"
+	| "RESTRICT";
 export type DsarStatus =
 	| "RECEIVED"
 	| "VERIFIED"
@@ -1743,8 +1757,16 @@ export type AnomalyMetric =
 	| "unique_recipients";
 
 export type AnomalySeverity = "INFO" | "WARNING" | "CRITICAL";
-export type AnomalyAlertStatus = "TRIGGERED" | "ACKNOWLEDGED" | "RESOLVED" | "FALSE_POSITIVE";
-export type AnomalyCondition = "zscore_gt" | "rate_multiplier_gt" | "absolute_gt" | "time_violation";
+export type AnomalyAlertStatus =
+	| "TRIGGERED"
+	| "ACKNOWLEDGED"
+	| "RESOLVED"
+	| "FALSE_POSITIVE";
+export type AnomalyCondition =
+	| "zscore_gt"
+	| "rate_multiplier_gt"
+	| "absolute_gt"
+	| "time_violation";
 export type QuarantineAction = "NONE" | "SOFT" | "HARD";
 export type QuarantineLevel = "NONE" | "SOFT" | "HARD";
 export type BaselinePeriod = "hourly" | "daily";
@@ -2005,4 +2027,83 @@ export interface ConnectExtensionResult {
 	expiresAt: string | null;
 	exchangeExpiresAt: string;
 	policy: "session" | "pre_approved";
+}
+
+// ---------------------------------------------------------------------------
+// Provisioning requests
+//
+// An agent cannot provision its own vault or phone number — both endpoints are
+// master-gated and an agent key never holds master authority. This is how it
+// asks its owner instead: the agent files a request, the owner approves in the
+// console, and the resource is created. The agent receives the result, never
+// the privilege.
+//
+// Distinct from a credential request, which collects a SECRET the agent must
+// never see. This collects a DECISION.
+// ---------------------------------------------------------------------------
+
+export type ProvisionableResource = "VAULT" | "PHONE_NUMBER";
+
+export type ProvisioningRequestStatus =
+	| "PENDING"
+	| "APPROVED"
+	| "DECLINED"
+	| "EXPIRED"
+	| "CANCELLED";
+
+export interface ProvisioningOptions {
+	/** PHONE_NUMBER only: ISO 3166-1 alpha-2, e.g. "US". */
+	countryCode?: string;
+	/** PHONE_NUMBER only: preferred 3-digit area code. */
+	areaCode?: string;
+}
+
+export interface CreateProvisioningRequestInput {
+	/** Required with a master key; omit when calling as the agent itself. */
+	agentId?: string;
+	resource: ProvisionableResource;
+	/** Shown verbatim to the owner — an unexplained ask is not a decidable one. */
+	reason: string;
+	options?: ProvisioningOptions;
+}
+
+export interface ProvisioningRequest {
+	requestId: string;
+	agentId: string;
+	/** So the owner knows who is asking, not just an opaque id. */
+	agentName: string;
+	resource: ProvisionableResource;
+	reason: string;
+	/** Lazily expired — a request past its TTL reads as EXPIRED here. */
+	status: ProvisioningRequestStatus;
+	options: ProvisioningOptions | null;
+	expiresAt: string;
+	decidedAt: string | null;
+	/** The owner's note, typically why it was declined. */
+	decidedNote: string | null;
+	/** Vault or phone identity id once APPROVED; null otherwise. */
+	provisionedId: string | null;
+	createdAt: string;
+}
+
+export interface CreateProvisioningRequestOutput extends ProvisioningRequest {
+	/**
+	 * Whether the owner notification actually went out. False does NOT mean the
+	 * request failed — it is live and visible in the console either way — but
+	 * do not assume a human was told.
+	 */
+	emailSent: boolean;
+}
+
+export interface DecideProvisioningRequestInput {
+	/** Note for the agent, so a retry can address the objection. */
+	note?: string;
+}
+
+export interface ListProvisioningRequestsParams {
+	agentId?: string;
+	status?: ProvisioningRequestStatus;
+	resource?: ProvisionableResource;
+	limit?: number;
+	cursor?: string;
 }

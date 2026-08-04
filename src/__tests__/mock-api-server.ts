@@ -51,7 +51,11 @@ function json(data: unknown, status = 200): Response {
 	});
 }
 
-function errorResponse(status: number, code: string, message: string): Response {
+function errorResponse(
+	status: number,
+	code: string,
+	message: string,
+): Response {
 	return json({ error: { code, message } }, status);
 }
 
@@ -68,7 +72,10 @@ export function startMockApiServer(): MockApiServer {
 
 	// Mirrors CREDENTIAL_TYPES in the contract: platform events auto-issue
 	// the reserved types; only the org-attestation types are API-issuable.
-	const API_ISSUABLE_CREDENTIAL_TYPES = new Set(["AnimaAddressVerified", "AnimaTrustScore"]);
+	const API_ISSUABLE_CREDENTIAL_TYPES = new Set([
+		"AnimaAddressVerified",
+		"AnimaTrustScore",
+	]);
 	const PLATFORM_RESERVED_CREDENTIAL_TYPES = new Set([
 		"AnimaEmailVerified",
 		"AnimaPhoneVerified",
@@ -86,7 +93,9 @@ export function startMockApiServer(): MockApiServer {
 			direction: "OUTBOUND",
 			status: "SENT",
 			fromAddress: "mock-agent@agents.useanima.sh",
-			toAddress: Array.isArray(input.to) ? String(input.to[0] ?? "") : String(input.to ?? ""),
+			toAddress: Array.isArray(input.to)
+				? String(input.to[0] ?? "")
+				: String(input.to ?? ""),
 			subject: (input.subject as string | undefined) ?? null,
 			body: (input.body as string | undefined) ?? "",
 			bodyHtml: (input.bodyHtml as string | undefined) ?? null,
@@ -112,13 +121,21 @@ export function startMockApiServer(): MockApiServer {
 		// The API serves every route under exactly one /v1 mount. A request
 		// arriving without it means the SDK's prefix handling regressed.
 		if (!url.pathname.startsWith("/v1/")) {
-			return errorResponse(404, "NOT_FOUND", `Route not found: ${url.pathname} (missing /v1 prefix?)`);
+			return errorResponse(
+				404,
+				"NOT_FOUND",
+				`Route not found: ${url.pathname} (missing /v1 prefix?)`,
+			);
 		}
 		const path = url.pathname.slice("/v1".length);
 
 		const authHeader = req.headers.get("authorization") ?? "";
 		if (!/^Bearer .+$/.test(authHeader)) {
-			return errorResponse(401, "UNAUTHORIZED", "Missing or malformed Authorization header");
+			return errorResponse(
+				401,
+				"UNAUTHORIZED",
+				"Missing or malformed Authorization header",
+			);
 		}
 
 		const body: JsonRecord = ["POST", "PATCH", "PUT"].includes(method)
@@ -145,7 +162,8 @@ export function startMockApiServer(): MockApiServer {
 		let match = path.match(/^\/orgs\/([^/]+)$/);
 		if (match) {
 			const org = orgs.get(match[1] as string);
-			if (!org) return errorResponse(404, "NOT_FOUND", "Organization not found");
+			if (!org)
+				return errorResponse(404, "NOT_FOUND", "Organization not found");
 			if (method === "GET") return json(org);
 			if (method === "DELETE") {
 				orgs.delete(org.id as string);
@@ -174,7 +192,9 @@ export function startMockApiServer(): MockApiServer {
 		}
 		if (method === "GET" && path === "/agents") {
 			const orgId = url.searchParams.get("orgId");
-			const items = [...agents.values()].filter((a) => !orgId || a.orgId === orgId);
+			const items = [...agents.values()].filter(
+				(a) => !orgId || a.orgId === orgId,
+			);
 			return json(paginated(items));
 		}
 		match = path.match(/^\/agents\/([^/]+)$/);
@@ -211,7 +231,11 @@ export function startMockApiServer(): MockApiServer {
 					);
 				}
 				if (!API_ISSUABLE_CREDENTIAL_TYPES.has(type)) {
-					return errorResponse(400, "VALIDATION_ERROR", `Unknown credential type: ${type}`);
+					return errorResponse(
+						400,
+						"VALIDATION_ERROR",
+						`Unknown credential type: ${type}`,
+					);
 				}
 				const id = makeId("vc");
 				const issuedAt = nowIso();
@@ -225,11 +249,16 @@ export function startMockApiServer(): MockApiServer {
 					issuerDid: "did:web:agents.useanima.sh",
 					subjectDid: `did:web:agents.useanima.sh:mock:${agentId}`,
 					issuedAt,
-					expiresAt: expiresInSeconds ? new Date(Date.now() + expiresInSeconds * 1000).toISOString() : null,
+					expiresAt: expiresInSeconds
+						? new Date(Date.now() + expiresInSeconds * 1000).toISOString()
+						: null,
 					revoked: false,
 					revokedAt: null,
 					revocationIndex: null,
-					metadata: { source: "api", claims: (body.claims as JsonRecord | undefined) ?? {} },
+					metadata: {
+						source: "api",
+						claims: (body.claims as JsonRecord | undefined) ?? {},
+					},
 					createdAt: issuedAt,
 					updatedAt: issuedAt,
 				};
@@ -257,13 +286,16 @@ export function startMockApiServer(): MockApiServer {
 		if (method === "GET" && path === "/messages") {
 			const agentId = url.searchParams.get("agentId");
 			// Newest-first, like the real /v1/messages.
-			const items = [...messages.values()].filter((m) => !agentId || m.agentId === agentId).reverse();
+			const items = [...messages.values()]
+				.filter((m) => !agentId || m.agentId === agentId)
+				.reverse();
 			return json(paginated(items));
 		}
 		if (method === "POST" && path === "/messages/search/semantic") {
 			const query = String(body.query ?? "").toLowerCase();
 			const tokens = query.split(/\s+/).filter(Boolean);
-			const threshold = typeof body.threshold === "number" ? body.threshold : 0.7;
+			const threshold =
+				typeof body.threshold === "number" ? body.threshold : 0.7;
 			const limit = typeof body.limit === "number" ? body.limit : 10;
 			const agentId = body.agentId as string | undefined;
 
@@ -275,7 +307,8 @@ export function startMockApiServer(): MockApiServer {
 					// Naive stand-in for cosine similarity: overlap ratio scaled
 					// into (0.7, 0.95] so any token match clears the default
 					// threshold, no match scores 0.
-					const similarity = matched === 0 ? 0 : 0.7 + 0.25 * (matched / tokens.length);
+					const similarity =
+						matched === 0 ? 0 : 0.7 + 0.25 * (matched / tokens.length);
 					return { message: m, similarity };
 				})
 				.filter((r) => r.similarity > threshold)
@@ -319,22 +352,37 @@ export function startMockApiServer(): MockApiServer {
 		}
 		if (method === "GET" && path === "/email/drafts") {
 			const agentId = url.searchParams.get("agentId");
-			const items = [...drafts.values()].filter((d) => !agentId || d.agentId === agentId).reverse();
+			const items = [...drafts.values()]
+				.filter((d) => !agentId || d.agentId === agentId)
+				.reverse();
 			return json(paginated(items));
 		}
 		match = path.match(/^\/email\/drafts\/([^/]+)\/send$/);
 		if (match && method === "POST") {
 			const draft = drafts.get(match[1] as string);
-			if (!draft) return errorResponse(404, "NOT_FOUND", "EmailDraft not found");
+			if (!draft)
+				return errorResponse(404, "NOT_FOUND", "EmailDraft not found");
 			const to = draft.to as string[];
 			if (to.length === 0) {
-				return errorResponse(400, "VALIDATION_ERROR", "Draft must have at least one recipient before sending");
+				return errorResponse(
+					400,
+					"VALIDATION_ERROR",
+					"Draft must have at least one recipient before sending",
+				);
 			}
 			if (!draft.subject) {
-				return errorResponse(400, "VALIDATION_ERROR", "Draft must have a subject before sending");
+				return errorResponse(
+					400,
+					"VALIDATION_ERROR",
+					"Draft must have a subject before sending",
+				);
 			}
 			if (!draft.body) {
-				return errorResponse(400, "VALIDATION_ERROR", "Draft must have a body before sending");
+				return errorResponse(
+					400,
+					"VALIDATION_ERROR",
+					"Draft must have a body before sending",
+				);
 			}
 			// Send-and-delete semantics: the draft becomes a Message and the
 			// draft row is gone — a later GET on the draft id must 404.
@@ -352,7 +400,8 @@ export function startMockApiServer(): MockApiServer {
 		match = path.match(/^\/email\/drafts\/([^/]+)$/);
 		if (match) {
 			const draft = drafts.get(match[1] as string);
-			if (!draft) return errorResponse(404, "NOT_FOUND", "EmailDraft not found");
+			if (!draft)
+				return errorResponse(404, "NOT_FOUND", "EmailDraft not found");
 			if (method === "GET") return json(draft);
 			if (method === "DELETE") {
 				drafts.delete(draft.id as string);
@@ -361,7 +410,11 @@ export function startMockApiServer(): MockApiServer {
 			}
 		}
 
-		return errorResponse(404, "NOT_FOUND", `Route not found: ${method} ${url.pathname}`);
+		return errorResponse(
+			404,
+			"NOT_FOUND",
+			`Route not found: ${method} ${url.pathname}`,
+		);
 	}
 
 	const server = Bun.serve({ port: 0, fetch: handle });

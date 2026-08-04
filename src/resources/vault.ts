@@ -7,8 +7,8 @@ import type {
 	CreateVaultTokenInput,
 	DeprovisionVaultInput,
 	GeneratePasswordInput,
-	ListVaultCredentialsParams,
 	ListVaultCredentialRequestsParams,
+	ListVaultCredentialsParams,
 	ListVaultIdentitiesParams,
 	PaginatedResponse,
 	ProvisionVaultInput,
@@ -17,6 +17,7 @@ import type {
 	RevokeVaultTokensInput,
 	SearchVaultParams,
 	ShareCredentialInput,
+	UpdateVaultCredentialInput,
 	UseVaultCredentialInput,
 	UseVaultCredentialOutput,
 	VaultAuditLogEntry,
@@ -31,7 +32,6 @@ import type {
 	VaultStatusOutput,
 	VaultTokenOutput,
 	VaultTotpOutput,
-	UpdateVaultCredentialInput,
 } from "../types";
 
 export class VaultResource {
@@ -55,7 +55,9 @@ export class VaultResource {
 	 * Query the credential audit trail — every access, share, broker use, and
 	 * denied egress is recorded here (never with any secret material).
 	 */
-	public audit(params?: VaultAuditQueryParams): PageIterator<VaultAuditLogEntry> {
+	public audit(
+		params?: VaultAuditQueryParams,
+	): PageIterator<VaultAuditLogEntry> {
 		return new PageIterator<VaultAuditLogEntry>((cursor) => {
 			const merged = cursor ? { ...params, cursor } : params;
 			return this.client.request<PaginatedResponse<VaultAuditLogEntry>>(
@@ -282,7 +284,9 @@ export class VaultResource {
 	): PageIterator<VaultCredentialRequestListItem> {
 		return new PageIterator<VaultCredentialRequestListItem>((cursor) => {
 			const merged = cursor ? { ...params, cursor } : params;
-			return this.client.request<PaginatedResponse<VaultCredentialRequestListItem>>(
+			return this.client.request<
+				PaginatedResponse<VaultCredentialRequestListItem>
+			>(
 				"GET",
 				"/vault/credential-requests",
 				undefined,

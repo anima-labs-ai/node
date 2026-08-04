@@ -159,9 +159,7 @@ export class AnimaEventStream {
 				this.send({
 					type: "subscribe",
 					channels: [...allChannels],
-					...(this.lastEventId
-						? { lastEventId: this.lastEventId }
-						: {}),
+					...(this.lastEventId ? { lastEventId: this.lastEventId } : {}),
 				});
 			}
 

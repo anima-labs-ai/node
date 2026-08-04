@@ -1,11 +1,14 @@
-import { createHmac } from "node:crypto";
-
 import { describe, expect, test } from "bun:test";
+import { createHmac } from "node:crypto";
 
 import { ValidationError } from "../errors";
 import { constructWebhookEvent, verifyWebhookSignature } from "../webhooks";
 
-function buildSignature(payload: string, secret: string, timestamp: number): string {
+function buildSignature(
+	payload: string,
+	secret: string,
+	timestamp: number,
+): string {
 	const signedPayload = `${timestamp}.${payload}`;
 	const hash = createHmac("sha256", secret).update(signedPayload).digest("hex");
 	return `t=${timestamp},v1=${hash}`;
@@ -13,7 +16,11 @@ function buildSignature(payload: string, secret: string, timestamp: number): str
 
 describe("webhook verification", () => {
 	test("verifies valid signed payload", () => {
-		const payload = JSON.stringify({ id: "evt_1", type: "message.sent", data: { messageId: "m1" } });
+		const payload = JSON.stringify({
+			id: "evt_1",
+			type: "message.sent",
+			data: { messageId: "m1" },
+		});
 		const secret = "whsec_test_secret";
 		const timestamp = 1_700_000_000;
 		const signature = buildSignature(payload, secret, timestamp);
@@ -27,7 +34,10 @@ describe("webhook verification", () => {
 	});
 
 	test("rejects invalid signature", () => {
-		const payload = JSON.stringify({ type: "message.sent", data: { messageId: "m1" } });
+		const payload = JSON.stringify({
+			type: "message.sent",
+			data: { messageId: "m1" },
+		});
 		const signature = "t=1700000000,v1=deadbeef";
 
 		const valid = verifyWebhookSignature(payload, signature, "wrong_secret", {
@@ -38,7 +48,10 @@ describe("webhook verification", () => {
 	});
 
 	test("rejects expired timestamp", () => {
-		const payload = JSON.stringify({ type: "message.sent", data: { messageId: "m1" } });
+		const payload = JSON.stringify({
+			type: "message.sent",
+			data: { messageId: "m1" },
+		});
 		const secret = "whsec_test_secret";
 		const timestamp = 1_700_000_000;
 		const signature = buildSignature(payload, secret, timestamp);
@@ -72,10 +85,13 @@ describe("webhook verification", () => {
 	});
 
 	test("constructEvent throws on invalid signature", () => {
-		const payload = JSON.stringify({ type: "message.sent", data: { messageId: "m1" } });
+		const payload = JSON.stringify({
+			type: "message.sent",
+			data: { messageId: "m1" },
+		});
 
-		expect(() => constructWebhookEvent(payload, "t=1,v1=bad", "secret", { now: 1_000 })).toThrow(
-			ValidationError,
-		);
+		expect(() =>
+			constructWebhookEvent(payload, "t=1,v1=bad", "secret", { now: 1_000 }),
+		).toThrow(ValidationError);
 	});
 });
