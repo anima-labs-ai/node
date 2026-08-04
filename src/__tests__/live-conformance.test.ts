@@ -225,6 +225,38 @@ describe("live conformance — org-scoped (the surface that was most wrong)", ()
 		await probe(() => anima.audit.list(orgId as string, { limit: 1 }));
 	});
 
+	// UPPERCASE in the contract; this SDK had them lowercase until 2026-08-04.
+	// Sent as FILTERS, so a wrong casing is a 400 rather than an empty list — a
+	// response assertion would pass on an org with no audit rows, and TS erases
+	// the type so nothing else can catch it.
+	orgScoped("audit.list — actorType enum values are accepted", async () => {
+		for (const actorType of ["API_KEY", "USER", "SYSTEM", "AGENT"] as const) {
+			await probe(() =>
+				anima.audit.list(orgId as string, { actorType, limit: 1 }),
+			);
+		}
+	});
+
+	orgScoped("audit.list — result enum values are accepted", async () => {
+		for (const result of ["SUCCESS", "FAILURE", "DENIED"] as const) {
+			await probe(() =>
+				anima.audit.list(orgId as string, { result, limit: 1 }),
+			);
+		}
+	});
+
+	// The flat-envelope endpoints answer {items, nextCursor} with no
+	// `pagination`. Awaiting the page used to yield `pagination: undefined`, and
+	// iterating it threw on the first page boundary.
+	orgScoped("audit.list — the flat envelope is normalized", async () => {
+		await probe(async () => {
+			const page = await anima.audit.list(orgId as string, { limit: 1 });
+			expect(Array.isArray(page.items)).toBe(true);
+			expect(page.pagination).toBeDefined();
+			expect(typeof page.pagination.hasMore).toBe("boolean");
+		});
+	});
+
 	orgScoped("anomaly.listAlerts", async () => {
 		await probe(() => anima.anomaly.listAlerts(orgId as string, { limit: 1 }));
 	});

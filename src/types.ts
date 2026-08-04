@@ -1421,13 +1421,18 @@ export interface RegistrySearchParams extends PaginationInput {
 // A2A (Agent-to-Agent Protocol)
 // ---------------------------------------------------------------------------
 
+// lowercase, matching A2ATaskStatusEnum in the contract — the same casing
+// defect as AuditActorType above but in the OPPOSITE direction, which is why
+// "uppercase everything" is not the rule. Confirmed against the A2ATask.status
+// column default and the handler, both of which write "submitted". Note the
+// API spells it "canceled" with one L.
 export type A2ATaskStatus =
-	| "SUBMITTED"
-	| "WORKING"
-	| "INPUT_REQUIRED"
-	| "COMPLETED"
-	| "CANCELED"
-	| "FAILED";
+	| "submitted"
+	| "working"
+	| "input_required"
+	| "completed"
+	| "canceled"
+	| "failed";
 
 export interface A2ASubmitTaskInput {
 	type: string;
@@ -1469,8 +1474,12 @@ export interface A2ATaskListParams extends PaginationInput {
 // Audit
 // ---------------------------------------------------------------------------
 
-export type AuditActorType = "api_key" | "user" | "system" | "agent";
-export type AuditResult = "success" | "failure" | "denied";
+// UPPERCASE, matching AuditActorTypeEnum / AuditResultEnum in the contract.
+// These were lowercase until 2026-08-04, and because TS types are erased the
+// mismatch was silent: `entry.actorType === "api_key"` compiled and never
+// matched, since the wire value is "API_KEY". Do not "normalise" the casing.
+export type AuditActorType = "API_KEY" | "USER" | "SYSTEM" | "AGENT";
+export type AuditResult = "SUCCESS" | "FAILURE" | "DENIED";
 
 export interface AuditLogOutput {
 	id: string;
