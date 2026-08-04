@@ -2,8 +2,8 @@ import type { RequestClient } from "../client";
 import type {
 	A2ADispatchInput,
 	A2ASubmitTaskInput,
-	A2ATaskOutput,
 	A2ATaskListParams,
+	A2ATaskOutput,
 	PaginatedResponse,
 	RequestOptions,
 } from "../types";
@@ -20,12 +20,18 @@ export class A2AResource {
 		const url = new URL("/.well-known/agent.json", agentUrl);
 		const res = await fetch(url.toString());
 		if (!res.ok) {
-			throw new Error(`Failed to discover agent at ${url}: ${res.status} ${res.statusText}`);
+			throw new Error(
+				`Failed to discover agent at ${url}: ${res.status} ${res.statusText}`,
+			);
 		}
 		return res.json() as Promise<Record<string, unknown>>;
 	}
 
-	public submitTask(agentId: string, input: A2ASubmitTaskInput, options?: RequestOptions): Promise<A2ATaskOutput> {
+	public submitTask(
+		agentId: string,
+		input: A2ASubmitTaskInput,
+		options?: RequestOptions,
+	): Promise<A2ATaskOutput> {
 		return this.client.request<A2ATaskOutput>(
 			"POST",
 			`/agents/${agentId}/a2a/tasks`,
@@ -35,7 +41,11 @@ export class A2AResource {
 		);
 	}
 
-	public getTask(agentId: string, taskId: string, options?: RequestOptions): Promise<A2ATaskOutput> {
+	public getTask(
+		agentId: string,
+		taskId: string,
+		options?: RequestOptions,
+	): Promise<A2ATaskOutput> {
 		return this.client.request<A2ATaskOutput>(
 			"GET",
 			`/agents/${agentId}/a2a/tasks/${taskId}`,
@@ -59,7 +69,11 @@ export class A2AResource {
 		);
 	}
 
-	public cancelTask(agentId: string, taskId: string, options?: RequestOptions): Promise<A2ATaskOutput> {
+	public cancelTask(
+		agentId: string,
+		taskId: string,
+		options?: RequestOptions,
+	): Promise<A2ATaskOutput> {
 		return this.client.request<A2ATaskOutput>(
 			"POST",
 			`/agents/${agentId}/a2a/tasks/${taskId}/cancel`,
@@ -83,7 +97,9 @@ export class A2AResource {
 		);
 	}
 
-	private toQuery(params?: A2ATaskListParams): Record<string, string> | undefined {
+	private toQuery(
+		params?: A2ATaskListParams,
+	): Record<string, string> | undefined {
 		if (!params) {
 			return undefined;
 		}

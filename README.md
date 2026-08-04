@@ -416,6 +416,49 @@ await anima.vault.sync("agent_id");
 await anima.vault.deprovision({ agentId: "agent_id" });
 ```
 
+### Provisioning Requests
+
+`vault.provision` and `phones.provision` both require a master key, which an
+agent is never given. This is how an agent asks its owner instead — it files a
+request, the owner approves it in the console, and the resource is created. The
+agent gets the result, never the privilege.
+
+```ts
+// As the agent: ask for a vault. `reason` is shown verbatim to the owner.
+const req = await anima.provisioningRequests.create({
+  resource: "VAULT",
+  reason: "To store the Stripe key so I can issue refunds",
+});
+
+// emailSent: false does NOT mean the request failed — it is live in the
+// console either way — but nobody was told, so nothing will happen until
+// someone looks.
+if (!req.emailSent) console.warn("owner was not notified");
+
+// Poll for the decision. `decidedNote` carries the owner's reason for a
+// decline, so a second attempt can address it instead of repeating the first.
+const current = await anima.provisioningRequests.get(req.requestId);
+if (current.status === "APPROVED") {
+  console.log("provisioned:", current.provisionedId);
+}
+
+// Withdraw an ask you no longer need.
+await anima.provisioningRequests.cancel(req.requestId);
+
+// As the owner (master key only): decide.
+await anima.provisioningRequests.approve(req.requestId);
+await anima.provisioningRequests.decline(req.requestId, {
+  note: "Tell me which API first",
+});
+
+// A phone number takes options; Starter+ plans only.
+await anima.provisioningRequests.create({
+  resource: "PHONE_NUMBER",
+  reason: "To receive delivery notifications",
+  options: { countryCode: "US", areaCode: "415" },
+});
+```
+
 ### Extension
 
 Mint a connect URL that opens the Anima browser extension already bound to an

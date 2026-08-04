@@ -1,6 +1,21 @@
-import { APIError, AuthError, ConflictError, InternalServerError, NotFoundError, RateLimitError, ValidationError } from "./errors";
+import {
+	APIError,
+	AuthError,
+	ConflictError,
+	InternalServerError,
+	NotFoundError,
+	RateLimitError,
+	ValidationError,
+} from "./errors";
 import { debug } from "./logger";
-import type { AnimaClientOptions, ApiErrorEnvelope, RawResponse, RequestEvent, RequestOptions, ResponseEvent } from "./types";
+import type {
+	AnimaClientOptions,
+	ApiErrorEnvelope,
+	RawResponse,
+	RequestEvent,
+	RequestOptions,
+	ResponseEvent,
+} from "./types";
 
 const DEFAULT_BASE_URL = "https://api.useanima.sh";
 // The Anima API serves every route under /v1. The version prefix lives in
@@ -29,7 +44,8 @@ export class AnimaClient implements RequestClient {
 	private readonly timeout: number;
 	private readonly maxRetries: number;
 	private readonly requestListeners: Array<(event: RequestEvent) => void> = [];
-	private readonly responseListeners: Array<(event: ResponseEvent) => void> = [];
+	private readonly responseListeners: Array<(event: ResponseEvent) => void> =
+		[];
 
 	public constructor(options: AnimaClientOptions = {}) {
 		const apiKey = options.apiKey ?? process.env.ANIMA_API_KEY;
@@ -43,30 +59,54 @@ export class AnimaClient implements RequestClient {
 		// "/v1" (e.g. a caller who pasted the API banner's ".../v1" base URL). The
 		// SDK owns the version prefix (API_VERSION_PREFIX), so leaving "/v1" here
 		// would double-prefix to "/v1/v1" and 404.
-		this.baseUrl = (options.baseUrl ?? process.env.ANIMA_API_URL ?? DEFAULT_BASE_URL)
+		this.baseUrl = (
+			options.baseUrl ??
+			process.env.ANIMA_API_URL ??
+			DEFAULT_BASE_URL
+		)
 			.replace(/\/+$/, "")
 			.replace(/\/v1$/, "");
 		this.timeout = options.timeout ?? DEFAULT_TIMEOUT;
 		this.maxRetries = options.maxRetries ?? DEFAULT_MAX_RETRIES;
-		debug("Client initialized", { baseUrl: this.baseUrl, timeout: this.timeout, maxRetries: this.maxRetries });
+		debug("Client initialized", {
+			baseUrl: this.baseUrl,
+			timeout: this.timeout,
+			maxRetries: this.maxRetries,
+		});
 	}
 
 	public on(event: "request", listener: (data: RequestEvent) => void): this;
 	public on(event: "response", listener: (data: ResponseEvent) => void): this;
-	public on(event: "request" | "response", listener: (data: never) => void): this {
-		if (event === "request") this.requestListeners.push(listener as unknown as (data: RequestEvent) => void);
-		else if (event === "response") this.responseListeners.push(listener as unknown as (data: ResponseEvent) => void);
+	public on(
+		event: "request" | "response",
+		listener: (data: never) => void,
+	): this {
+		if (event === "request")
+			this.requestListeners.push(
+				listener as unknown as (data: RequestEvent) => void,
+			);
+		else if (event === "response")
+			this.responseListeners.push(
+				listener as unknown as (data: ResponseEvent) => void,
+			);
 		return this;
 	}
 
 	public off(event: "request", listener: (data: RequestEvent) => void): this;
 	public off(event: "response", listener: (data: ResponseEvent) => void): this;
-	public off(event: "request" | "response", listener: (data: never) => void): this {
+	public off(
+		event: "request" | "response",
+		listener: (data: never) => void,
+	): this {
 		if (event === "request") {
-			const idx = this.requestListeners.indexOf(listener as unknown as (data: RequestEvent) => void);
+			const idx = this.requestListeners.indexOf(
+				listener as unknown as (data: RequestEvent) => void,
+			);
 			if (idx !== -1) this.requestListeners.splice(idx, 1);
 		} else if (event === "response") {
-			const idx = this.responseListeners.indexOf(listener as unknown as (data: ResponseEvent) => void);
+			const idx = this.responseListeners.indexOf(
+				listener as unknown as (data: ResponseEvent) => void,
+			);
 			if (idx !== -1) this.responseListeners.splice(idx, 1);
 		}
 		return this;
@@ -94,7 +134,9 @@ export class AnimaClient implements RequestClient {
 		const url = this.buildUrl(path, query);
 		const timeout = options?.timeout ?? this.timeout;
 		const maxRetries = options?.maxRetries ?? this.maxRetries;
-		const idempotencyKey = options?.idempotencyKey ?? (this.isMutating(method) ? crypto.randomUUID() : undefined);
+		const idempotencyKey =
+			options?.idempotencyKey ??
+			(this.isMutating(method) ? crypto.randomUUID() : undefined);
 
 		const startTime = Date.now();
 		debug(`${method} ${path}`, { attempt: 0 });
@@ -104,7 +146,7 @@ export class AnimaClient implements RequestClient {
 			const timeoutId = setTimeout(() => controller.abort(), timeout);
 
 			try {
-			const headers: Record<string, string> = {
+				const headers: Record<string, string> = {
 					Authorization: `Bearer ${this.apiKey}`,
 				};
 				if (body !== undefined) {
@@ -115,7 +157,11 @@ export class AnimaClient implements RequestClient {
 				}
 
 				if (attempt === 0) {
-					this.emitRequest({ method, path, headers: { ...headers, Authorization: "Bearer [REDACTED]" } });
+					this.emitRequest({
+						method,
+						path,
+						headers: { ...headers, Authorization: "Bearer [REDACTED]" },
+					});
 				}
 
 				const response = await fetch(url, {
@@ -127,13 +173,24 @@ export class AnimaClient implements RequestClient {
 
 				const durationMs = Date.now() - startTime;
 				const responseHeaders: Record<string, string> = {};
-				response.headers.forEach((v, k) => { responseHeaders[k] = v; });
-				this.emitResponse({ method, path, status: response.status, durationMs, headers: responseHeaders });
+				response.headers.forEach((v, k) => {
+					responseHeaders[k] = v;
+				});
+				this.emitResponse({
+					method,
+					path,
+					status: response.status,
+					durationMs,
+					headers: responseHeaders,
+				});
 
 				if (response.ok) {
 					debug(`${method} ${path} -> ${response.status}`, { durationMs });
 
-					const data = response.status === 204 ? (undefined as T) : ((await response.json()) as T);
+					const data =
+						response.status === 204
+							? (undefined as T)
+							: ((await response.json()) as T);
 
 					if (options?.rawResponse) {
 						return {
@@ -145,37 +202,55 @@ export class AnimaClient implements RequestClient {
 					return data;
 				}
 
-				const shouldRetry = this.shouldRetry(response.status) && attempt < maxRetries;
+				const shouldRetry =
+					this.shouldRetry(response.status) && attempt < maxRetries;
 				if (shouldRetry) {
 					const retryAfter = this.parseRetryAfter(response);
 					const delayMs = retryAfter ?? this.jitteredDelay(attempt);
-					debug(`${method} ${path} -> ${response.status}, retrying in ${Math.round(delayMs)}ms`, { attempt: attempt + 1 });
+					debug(
+						`${method} ${path} -> ${response.status}, retrying in ${Math.round(delayMs)}ms`,
+						{ attempt: attempt + 1 },
+					);
 					await this.wait(delayMs);
 					continue;
 				}
 
-				debug(`${method} ${path} -> ${response.status} (failed)`, { durationMs });
+				debug(`${method} ${path} -> ${response.status} (failed)`, {
+					durationMs,
+				});
 				throw await this.parseError(response);
 			} catch (error) {
 				if (error instanceof APIError) {
 					throw error;
 				}
 
-				const isAbortError = error instanceof Error && error.name === "AbortError";
+				const isAbortError =
+					error instanceof Error && error.name === "AbortError";
 				if (isAbortError) {
-					debug(`${method} ${path} -> timeout after ${Date.now() - startTime}ms`);
-					throw new APIError(`Request timed out after ${this.timeout}ms`, 408, "TIMEOUT");
+					debug(
+						`${method} ${path} -> timeout after ${Date.now() - startTime}ms`,
+					);
+					throw new APIError(
+						`Request timed out after ${this.timeout}ms`,
+						408,
+						"TIMEOUT",
+					);
 				}
 
 				const shouldRetry = attempt < maxRetries;
 				if (shouldRetry) {
 					const delayMs = this.jitteredDelay(attempt);
-					debug(`${method} ${path} -> network error, retrying in ${Math.round(delayMs)}ms`, { attempt: attempt + 1 });
+					debug(
+						`${method} ${path} -> network error, retrying in ${Math.round(delayMs)}ms`,
+						{ attempt: attempt + 1 },
+					);
 					await this.wait(delayMs);
 					continue;
 				}
 
-				debug(`${method} ${path} -> network error (failed)`, { durationMs: Date.now() - startTime });
+				debug(`${method} ${path} -> network error (failed)`, {
+					durationMs: Date.now() - startTime,
+				});
 				if (error instanceof Error) {
 					throw new APIError(error.message, 0, "NETWORK_ERROR");
 				}
@@ -195,9 +270,14 @@ export class AnimaClient implements RequestClient {
 		});
 	}
 
-	private buildUrl(path: string, query?: Record<string, string | string[]>): string {
+	private buildUrl(
+		path: string,
+		query?: Record<string, string | string[]>,
+	): string {
 		const normalizedPath = path.startsWith("/") ? path : `/${path}`;
-		const url = new URL(`${this.baseUrl}${API_VERSION_PREFIX}${normalizedPath}`);
+		const url = new URL(
+			`${this.baseUrl}${API_VERSION_PREFIX}${normalizedPath}`,
+		);
 
 		if (query) {
 			for (const [key, value] of Object.entries(query)) {
@@ -235,7 +315,10 @@ export class AnimaClient implements RequestClient {
 		return status === 429 || status >= 500;
 	}
 
-	private buildRawResponse(response: Response, durationMs: number): RawResponse {
+	private buildRawResponse(
+		response: Response,
+		durationMs: number,
+	): RawResponse {
 		const headers: Record<string, string> = {};
 		response.headers.forEach((value, key) => {
 			headers[key] = value;

@@ -15,7 +15,10 @@ export class SecurityResource {
 	// callable endpoint. The security surface the API does expose is the event
 	// feed and the scanner status below.
 
-	public getScannerStatus(orgId: string, options?: RequestOptions): Promise<ScannerStatusOutput> {
+	public getScannerStatus(
+		orgId: string,
+		options?: RequestOptions,
+	): Promise<ScannerStatusOutput> {
 		return this.client.request<ScannerStatusOutput>(
 			"GET",
 			`/orgs/${orgId}/security/scanner-status`,
@@ -25,7 +28,10 @@ export class SecurityResource {
 		);
 	}
 
-	public listEvents(params: SecurityEventsListParams, options?: RequestOptions): Promise<PaginatedResponse<SecurityEventOutput>> {
+	public listEvents(
+		params: SecurityEventsListParams,
+		options?: RequestOptions,
+	): Promise<PaginatedResponse<SecurityEventOutput>> {
 		return this.client.request<PaginatedResponse<SecurityEventOutput>>(
 			"GET",
 			`/orgs/${params.orgId}/security/events`,

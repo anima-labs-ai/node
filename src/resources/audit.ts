@@ -1,28 +1,50 @@
 import type { RequestClient } from "../client";
 import { PageIterator } from "../pagination";
 import type {
-	AuditLogOutput,
-	AuditLogListParams,
-	AuditLogExportParams,
 	AuditLogExportOutput,
+	AuditLogExportParams,
+	AuditLogListParams,
+	AuditLogOutput,
 	RequestOptions,
 } from "../types";
 
 export class AuditResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public list(orgId: string, params?: AuditLogListParams): PageIterator<AuditLogOutput> {
+	public list(
+		orgId: string,
+		params?: AuditLogListParams,
+	): PageIterator<AuditLogOutput> {
 		return new PageIterator<AuditLogOutput>((cursor) => {
 			const merged = cursor ? { ...params, cursor } : params;
-			return this.client.request("GET", `/orgs/${orgId}/audit-logs`, undefined, this.toQuery(merged));
+			return this.client.request(
+				"GET",
+				`/orgs/${orgId}/audit-logs`,
+				undefined,
+				this.toQuery(merged),
+			);
 		});
 	}
 
-	public get(orgId: string, logId: string, options?: RequestOptions): Promise<AuditLogOutput> {
-		return this.client.request<AuditLogOutput>("GET", `/orgs/${orgId}/audit-logs/${logId}`, undefined, undefined, options);
+	public get(
+		orgId: string,
+		logId: string,
+		options?: RequestOptions,
+	): Promise<AuditLogOutput> {
+		return this.client.request<AuditLogOutput>(
+			"GET",
+			`/orgs/${orgId}/audit-logs/${logId}`,
+			undefined,
+			undefined,
+			options,
+		);
 	}
 
-	public export(orgId: string, params?: AuditLogExportParams, options?: RequestOptions): Promise<AuditLogExportOutput> {
+	public export(
+		orgId: string,
+		params?: AuditLogExportParams,
+		options?: RequestOptions,
+	): Promise<AuditLogExportOutput> {
 		return this.client.request<AuditLogExportOutput>(
 			"POST",
 			`/orgs/${orgId}/audit-logs/export`,

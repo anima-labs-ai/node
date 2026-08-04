@@ -19,7 +19,11 @@ import { describe, expect, mock, test } from "bun:test";
 
 import type { RequestClient } from "../client";
 import { OrganizationsResource } from "../resources/organizations";
-import type { CreateOrganizationInput, OrganizationOutput, Tier } from "../types";
+import type {
+	CreateOrganizationInput,
+	OrganizationOutput,
+	Tier,
+} from "../types";
 
 /**
  * The tiers the API can actually accept or return. Mirrors `TierSchema` in
@@ -41,7 +45,10 @@ function createMockClient(response: unknown): {
 	requestMock: ReturnType<typeof mock>;
 } {
 	const requestMock = mock(async () => response);
-	return { client: { request: requestMock as RequestClient["request"] }, requestMock };
+	return {
+		client: { request: requestMock as RequestClient["request"] },
+		requestMock,
+	};
 }
 
 function orgResponse(tier: Tier): OrganizationOutput {
@@ -63,7 +70,12 @@ describe("Tier", () => {
 		// The type-level assertion above is the real guard; this asserts the
 		// same thing at runtime so the reason is visible in test output rather
 		// than only as a tsc error.
-		expect([...LIVE_TIERS]).toEqual(["FREE", "STARTER", "GROWTH", "ENTERPRISE"]);
+		expect([...LIVE_TIERS]).toEqual([
+			"FREE",
+			"STARTER",
+			"GROWTH",
+			"ENTERPRISE",
+		]);
 		expect(_tierMatchesContract).toBe(true);
 	});
 
@@ -71,7 +83,11 @@ describe("Tier", () => {
 		// The regression: `tier: "STARTER"` was a type error, so the Starter
 		// plan was unreachable through the typed client.
 		for (const tier of LIVE_TIERS) {
-			const input: CreateOrganizationInput = { name: "Acme", slug: "acme", tier };
+			const input: CreateOrganizationInput = {
+				name: "Acme",
+				slug: "acme",
+				tier,
+			};
 			expect(input.tier).toBe(tier);
 		}
 	});

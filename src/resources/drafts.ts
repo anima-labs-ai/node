@@ -19,18 +19,38 @@ import type {
 export class DraftsResource {
 	public constructor(private readonly client: RequestClient) {}
 
-	public create(input: CreateEmailDraftInput, options?: RequestOptions): Promise<EmailDraftOutput> {
-		return this.client.request<EmailDraftOutput>("POST", "/email/drafts", input, undefined, options);
+	public create(
+		input: CreateEmailDraftInput,
+		options?: RequestOptions,
+	): Promise<EmailDraftOutput> {
+		return this.client.request<EmailDraftOutput>(
+			"POST",
+			"/email/drafts",
+			input,
+			undefined,
+			options,
+		);
 	}
 
 	public get(id: string, options?: RequestOptions): Promise<EmailDraftOutput> {
-		return this.client.request<EmailDraftOutput>("GET", `/email/drafts/${id}`, undefined, undefined, options);
+		return this.client.request<EmailDraftOutput>(
+			"GET",
+			`/email/drafts/${id}`,
+			undefined,
+			undefined,
+			options,
+		);
 	}
 
 	public list(params?: EmailDraftListParams): PageIterator<EmailDraftOutput> {
 		return new PageIterator<EmailDraftOutput>((cursor) => {
 			const merged = cursor ? { ...params, cursor } : params;
-			return this.client.request("GET", "/email/drafts", undefined, this.toQuery(merged));
+			return this.client.request(
+				"GET",
+				"/email/drafts",
+				undefined,
+				this.toQuery(merged),
+			);
 		});
 	}
 
@@ -39,15 +59,32 @@ export class DraftsResource {
 	 * atomically; resolves to the sent Message.
 	 */
 	public send(id: string, options?: RequestOptions): Promise<MessageOutput> {
-		return this.client.request<MessageOutput>("POST", `/email/drafts/${id}/send`, { id }, undefined, options);
+		return this.client.request<MessageOutput>(
+			"POST",
+			`/email/drafts/${id}/send`,
+			{ id },
+			undefined,
+			options,
+		);
 	}
 
 	/** Delete the draft without sending. Resolves to the deleted draft. */
-	public delete(id: string, options?: RequestOptions): Promise<EmailDraftOutput> {
-		return this.client.request<EmailDraftOutput>("DELETE", `/email/drafts/${id}`, undefined, undefined, options);
+	public delete(
+		id: string,
+		options?: RequestOptions,
+	): Promise<EmailDraftOutput> {
+		return this.client.request<EmailDraftOutput>(
+			"DELETE",
+			`/email/drafts/${id}`,
+			undefined,
+			undefined,
+			options,
+		);
 	}
 
-	private toQuery(params?: EmailDraftListParams): Record<string, string> | undefined {
+	private toQuery(
+		params?: EmailDraftListParams,
+	): Record<string, string> | undefined {
 		if (!params) {
 			return undefined;
 		}

@@ -39,7 +39,11 @@ import type {
  * A value added to the type but not to the list below — or vice versa — is a
  * type error here rather than a 400 at runtime.
  */
-type ExactlyEquals<A, B> = [A] extends [B] ? ([B] extends [A] ? true : never) : never;
+type ExactlyEquals<A, B> = [A] extends [B]
+	? [B] extends [A]
+		? true
+		: never
+	: never;
 
 const FRAMEWORKS = ["SOC2", "GDPR", "PCI"] as const;
 const CONTROL_STATUSES = [
@@ -71,9 +75,20 @@ const REPORT_TYPES = [
 	"AUDIT_EXPORT",
 	"GDPR_DSAR",
 ] as const;
-const REPORT_STATUSES = ["PENDING", "GENERATING", "COMPLETED", "FAILED"] as const;
+const REPORT_STATUSES = [
+	"PENDING",
+	"GENERATING",
+	"COMPLETED",
+	"FAILED",
+] as const;
 const REPORT_FORMATS = ["JSON", "CSV", "PDF"] as const;
-const DSAR_TYPES = ["ACCESS", "DELETE", "RECTIFY", "PORTABILITY", "RESTRICT"] as const;
+const DSAR_TYPES = [
+	"ACCESS",
+	"DELETE",
+	"RECTIFY",
+	"PORTABILITY",
+	"RESTRICT",
+] as const;
 const DSAR_STATUSES = [
 	"RECEIVED",
 	"VERIFIED",
@@ -104,7 +119,9 @@ function createMockClient(): {
 	requestMock: ReturnType<typeof mock>;
 } {
 	const requestMock = mock(async () => ({ ok: true }));
-	const client: RequestClient = { request: requestMock as RequestClient["request"] };
+	const client: RequestClient = {
+		request: requestMock as RequestClient["request"],
+	};
 	return { resource: new ComplianceResource(client), requestMock };
 }
 
@@ -119,7 +136,16 @@ describe("compliance enums match the API contract", () => {
 	// visible in test output so a mismatch reads as a diff, not a type error in
 	// a file nobody opened.
 	test("the type-level pins all hold", () => {
-		expect(CONTRACT_PINS).toEqual([true, true, true, true, true, true, true, true]);
+		expect(CONTRACT_PINS).toEqual([
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+			true,
+		]);
 	});
 
 	test("every enum is SCREAMING_SNAKE", () => {
@@ -138,7 +164,13 @@ describe("compliance enums match the API contract", () => {
 	});
 
 	test("DSAR types are the five the API accepts", () => {
-		expect([...DSAR_TYPES]).toEqual(["ACCESS", "DELETE", "RECTIFY", "PORTABILITY", "RESTRICT"]);
+		expect([...DSAR_TYPES]).toEqual([
+			"ACCESS",
+			"DELETE",
+			"RECTIFY",
+			"PORTABILITY",
+			"RESTRICT",
+		]);
 	});
 
 	test("DSAR statuses include OVERDUE, which the SDK used to omit", () => {
@@ -149,13 +181,22 @@ describe("compliance enums match the API contract", () => {
 describe("compliance routes match the API contract", () => {
 	test("createDsar POSTs the org-scoped collection", async () => {
 		const { resource, requestMock } = createMockClient();
-		await resource.createDsar("org_1", { type: "ACCESS", subjectEmail: "a@b.com" });
-		expect(callSignature(requestMock)).toEqual(["POST", "/orgs/org_1/compliance/dsars"]);
+		await resource.createDsar("org_1", {
+			type: "ACCESS",
+			subjectEmail: "a@b.com",
+		});
+		expect(callSignature(requestMock)).toEqual([
+			"POST",
+			"/orgs/org_1/compliance/dsars",
+		]);
 	});
 
 	test("createDsar sends `type`, never `requestType`", async () => {
 		const { resource, requestMock } = createMockClient();
-		await resource.createDsar("org_1", { type: "DELETE", subjectEmail: "a@b.com" });
+		await resource.createDsar("org_1", {
+			type: "DELETE",
+			subjectEmail: "a@b.com",
+		});
 		const body = requestMock.mock.calls[0][2] as Record<string, unknown>;
 		expect(body.type).toBe("DELETE");
 		expect(body).not.toHaveProperty("requestType");
@@ -182,13 +223,19 @@ describe("compliance routes match the API contract", () => {
 	test("getDsar reads a single request", async () => {
 		const { resource, requestMock } = createMockClient();
 		await resource.getDsar("org_1", "dsar_1");
-		expect(callSignature(requestMock)).toEqual(["GET", "/orgs/org_1/compliance/dsars/dsar_1"]);
+		expect(callSignature(requestMock)).toEqual([
+			"GET",
+			"/orgs/org_1/compliance/dsars/dsar_1",
+		]);
 	});
 
 	test("listTemplates reads the template catalogue", async () => {
 		const { resource, requestMock } = createMockClient();
 		await resource.listTemplates("org_1");
-		expect(callSignature(requestMock)).toEqual(["GET", "/orgs/org_1/compliance/templates"]);
+		expect(callSignature(requestMock)).toEqual([
+			"GET",
+			"/orgs/org_1/compliance/templates",
+		]);
 	});
 
 	test("generateReport POSTs a report type the API accepts", async () => {
@@ -202,7 +249,9 @@ describe("compliance routes match the API contract", () => {
 
 	test("control status update PATCHes with an uppercase status", async () => {
 		const { resource, requestMock } = createMockClient();
-		await resource.updateControlStatus("org_1", "CC6.1", { status: "IMPLEMENTED" });
+		await resource.updateControlStatus("org_1", "CC6.1", {
+			status: "IMPLEMENTED",
+		});
 		const body = requestMock.mock.calls[0][2] as Record<string, unknown>;
 		expect(callSignature(requestMock)).toEqual([
 			"PATCH",

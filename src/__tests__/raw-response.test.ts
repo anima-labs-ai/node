@@ -24,7 +24,10 @@ describe("Raw response", () => {
 		);
 
 		const client = new AnimaClient({ apiKey: "sk_test" });
-		const result = await client.request<{ id: string; name: string }>("GET", "/agents/1");
+		const result = await client.request<{ id: string; name: string }>(
+			"GET",
+			"/agents/1",
+		);
 
 		expect(result.id).toBe("agent_1");
 		expect(result.name).toBe("Test");
@@ -42,13 +45,15 @@ describe("Raw response", () => {
 		);
 
 		const client = new AnimaClient({ apiKey: "sk_test" });
-		const result = await client.request<{ data: { id: string; name: string }; response: { status: number; requestId: string | null; responseTimeMs: number; headers: Record<string, string> } }>(
-			"GET",
-			"/agents/1",
-			undefined,
-			undefined,
-			{ rawResponse: true },
-		);
+		const result = await client.request<{
+			data: { id: string; name: string };
+			response: {
+				status: number;
+				requestId: string | null;
+				responseTimeMs: number;
+				headers: Record<string, string>;
+			};
+		}>("GET", "/agents/1", undefined, undefined, { rawResponse: true });
 
 		expect(result.data.id).toBe("agent_1");
 		expect(result.data.name).toBe("Test");
@@ -67,13 +72,10 @@ describe("Raw response", () => {
 		);
 
 		const client = new AnimaClient({ apiKey: "sk_test" });
-		const result = await client.request<{ data: undefined; response: { status: number; requestId: string | null } }>(
-			"DELETE",
-			"/agents/1",
-			undefined,
-			undefined,
-			{ rawResponse: true },
-		);
+		const result = await client.request<{
+			data: undefined;
+			response: { status: number; requestId: string | null };
+		}>("DELETE", "/agents/1", undefined, undefined, { rawResponse: true });
 
 		expect(result.data).toBeUndefined();
 		expect(result.response.status).toBe(204);
@@ -86,13 +88,10 @@ describe("Raw response", () => {
 		);
 
 		const client = new AnimaClient({ apiKey: "sk_test" });
-		const result = await client.request<{ data: unknown; response: { responseTimeMs: number } }>(
-			"GET",
-			"/test",
-			undefined,
-			undefined,
-			{ rawResponse: true },
-		);
+		const result = await client.request<{
+			data: unknown;
+			response: { responseTimeMs: number };
+		}>("GET", "/test", undefined, undefined, { rawResponse: true });
 
 		expect(result.response.responseTimeMs).toBeGreaterThanOrEqual(0);
 	});

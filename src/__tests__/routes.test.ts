@@ -57,7 +57,10 @@ const RESOURCES_DIR = join(import.meta.dir, "..", "resources");
 
 /** Path params differ per call site; compare shapes, not ids. */
 function normalise(path: string): string {
-	return path.replace(/\$\{[^}]*\}/g, "*").replace(/\/+/g, "/").replace(/\/$/, "");
+	return path
+		.replace(/\$\{[^}]*\}/g, "*")
+		.replace(/\/+/g, "/")
+		.replace(/\/$/, "");
 }
 
 /**
@@ -263,6 +266,14 @@ const API_ROUTES: ReadonlySet<string> = new Set([
 	"POST /phone/sms-unsuppress",
 	"GET /phone/sms/threads",
 	"GET /phone/sms/threads/*",
+	// Provisioning requests — how an agent asks its owner for a vault or a
+	// phone number, neither of which it can provision itself.
+	"GET /provisioning-requests",
+	"POST /provisioning-requests",
+	"GET /provisioning-requests/*",
+	"POST /provisioning-requests/*/approve",
+	"POST /provisioning-requests/*/cancel",
+	"POST /provisioning-requests/*/decline",
 	"POST /registry/agents",
 	"DELETE /registry/agents/*",
 	"GET /registry/agents/*",
@@ -344,7 +355,9 @@ const API_ROUTES: ReadonlySet<string> = new Set([
 function sdkCalls(): { file: string; route: string }[] {
 	const found: { file: string; route: string }[] = [];
 	const pattern = /"(GET|POST|PUT|PATCH|DELETE)",\s*(?:`([^`]+)`|"(\/[^"]*)")/g;
-	for (const file of readdirSync(RESOURCES_DIR).filter((f) => f.endsWith(".ts"))) {
+	for (const file of readdirSync(RESOURCES_DIR).filter((f) =>
+		f.endsWith(".ts"),
+	)) {
 		const source = readFileSync(join(RESOURCES_DIR, file), "utf8");
 		for (const match of source.matchAll(pattern)) {
 			const path = match[2] ?? match[3];
@@ -374,8 +387,11 @@ function sdkCalls(): { file: string; route: string }[] {
  */
 function concatenatedPaths(): { file: string; prefix: string }[] {
 	const found: { file: string; prefix: string }[] = [];
-	const pattern = /"(?:GET|POST|PUT|PATCH|DELETE)",\s*(?:"(\/[^"]*)"|`([^`]*)`)\s*\+/g;
-	for (const file of readdirSync(RESOURCES_DIR).filter((f) => f.endsWith(".ts"))) {
+	const pattern =
+		/"(?:GET|POST|PUT|PATCH|DELETE)",\s*(?:"(\/[^"]*)"|`([^`]*)`)\s*\+/g;
+	for (const file of readdirSync(RESOURCES_DIR).filter((f) =>
+		f.endsWith(".ts"),
+	)) {
 		const source = readFileSync(join(RESOURCES_DIR, file), "utf8");
 		for (const match of source.matchAll(pattern)) {
 			found.push({ file, prefix: (match[1] ?? match[2]) as string });

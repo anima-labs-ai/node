@@ -1,7 +1,6 @@
 import { afterAll, beforeAll, describe, expect, mock, test } from "bun:test";
 
-process.env.DATABASE_URL ??=
-	"postgresql://anima:anima@localhost:5433/anima";
+process.env.DATABASE_URL ??= "postgresql://anima:anima@localhost:5433/anima";
 process.env.AWS_SES_REGION ??= "us-east-1";
 
 // Mocks MUST be registered before the server import below
@@ -115,7 +114,7 @@ if (intMode === "real" && !createServer) {
 }
 
 import { Anima, AuthError, NotFoundError, ValidationError } from "../index";
-import { startMockApiServer, type MockApiServer } from "./mock-api-server";
+import { type MockApiServer, startMockApiServer } from "./mock-api-server";
 
 const mode: "real" | "mock" = createServer ? "real" : "mock";
 
@@ -256,7 +255,9 @@ describe(`sdk integration flow (${mode} server)`, () => {
 		expect(incomplete.id).toBeDefined();
 		expect(incomplete.to).toEqual([]);
 		expect(incomplete.subject).toBe("Quarterly report");
-		await expect(am.drafts.send(incomplete.id)).rejects.toThrow(ValidationError);
+		await expect(am.drafts.send(incomplete.id)).rejects.toThrow(
+			ValidationError,
+		);
 		// A failed send keeps the draft so the caller can fix and retry.
 		const survived = await am.drafts.get(incomplete.id);
 		expect(survived.id).toBe(incomplete.id);

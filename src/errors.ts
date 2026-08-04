@@ -12,7 +12,12 @@ export class APIError extends AnimaError {
 	public readonly status: number;
 	public readonly code?: string;
 
-	public constructor(message: string, status: number, code?: string, details?: unknown) {
+	public constructor(
+		message: string,
+		status: number,
+		code?: string,
+		details?: unknown,
+	) {
 		super(message, details);
 		this.name = "APIError";
 		this.status = status;
@@ -37,7 +42,11 @@ export class NotFoundError extends APIError {
 export class RateLimitError extends APIError {
 	public readonly retryAfter?: number;
 
-	public constructor(message = "Rate limit exceeded", retryAfter?: number, details?: unknown) {
+	public constructor(
+		message = "Rate limit exceeded",
+		retryAfter?: number,
+		details?: unknown,
+	) {
 		super(message, 429, "RATE_LIMIT", details);
 		this.name = "RateLimitError";
 		this.retryAfter = retryAfter;
@@ -59,7 +68,11 @@ export class ConflictError extends APIError {
 }
 
 export class InternalServerError extends APIError {
-	public constructor(message = "Internal server error", status = 500, details?: unknown) {
+	public constructor(
+		message = "Internal server error",
+		status = 500,
+		details?: unknown,
+	) {
 		super(message, status, "INTERNAL_ERROR", details);
 		this.name = "InternalServerError";
 	}

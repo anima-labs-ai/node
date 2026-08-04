@@ -14,8 +14,12 @@ import type { PaginatedResponse } from "./types";
  *     console.log(agent);
  *   }
  */
-export class PageIterator<T> implements PromiseLike<PaginatedResponse<T>>, AsyncIterable<T> {
-	private readonly fetchPage: (cursor?: string) => Promise<PaginatedResponse<T>>;
+export class PageIterator<T>
+	implements PromiseLike<PaginatedResponse<T>>, AsyncIterable<T>
+{
+	private readonly fetchPage: (
+		cursor?: string,
+	) => Promise<PaginatedResponse<T>>;
 
 	constructor(fetchPage: (cursor?: string) => Promise<PaginatedResponse<T>>) {
 		this.fetchPage = fetchPage;
@@ -23,7 +27,9 @@ export class PageIterator<T> implements PromiseLike<PaginatedResponse<T>>, Async
 
 	/** Await the first page (backwards compatible with Promise<PaginatedResponse<T>>) */
 	then<TResult1 = PaginatedResponse<T>, TResult2 = never>(
-		onfulfilled?: ((value: PaginatedResponse<T>) => TResult1 | PromiseLike<TResult1>) | null,
+		onfulfilled?:
+			| ((value: PaginatedResponse<T>) => TResult1 | PromiseLike<TResult1>)
+			| null,
 		onrejected?: ((reason: unknown) => TResult2 | PromiseLike<TResult2>) | null,
 	): Promise<TResult1 | TResult2> {
 		return this.fetchPage().then(onfulfilled, onrejected);
@@ -37,9 +43,10 @@ export class PageIterator<T> implements PromiseLike<PaginatedResponse<T>>, Async
 			for (const item of page.items) {
 				yield item;
 			}
-			cursor = page.pagination.hasMore && page.pagination.nextCursor
-				? page.pagination.nextCursor
-				: undefined;
+			cursor =
+				page.pagination.hasMore && page.pagination.nextCursor
+					? page.pagination.nextCursor
+					: undefined;
 		} while (cursor);
 	}
 }
@@ -53,7 +60,12 @@ export function createPageIterator<T, P extends { cursor?: string }>(
 	toQuery: (params?: P) => Record<string, string> | undefined,
 ): PageIterator<T> {
 	return new PageIterator<T>((cursor) => {
-		const merged = cursor ? { ...params, cursor } as P : params;
-		return client.request<PaginatedResponse<T>>(method, path, undefined, toQuery(merged));
+		const merged = cursor ? ({ ...params, cursor } as P) : params;
+		return client.request<PaginatedResponse<T>>(
+			method,
+			path,
+			undefined,
+			toQuery(merged),
+		);
 	});
 }

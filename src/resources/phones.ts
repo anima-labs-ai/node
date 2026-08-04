@@ -26,15 +26,36 @@ export class PhonesResource {
 		);
 	}
 
-	public provision(input: ProvisionPhoneInput, options?: RequestOptions): Promise<PhoneProvisionOutput> {
-		return this.client.request<PhoneProvisionOutput>("POST", "/phone/provision", input, undefined, options);
+	public provision(
+		input: ProvisionPhoneInput,
+		options?: RequestOptions,
+	): Promise<PhoneProvisionOutput> {
+		return this.client.request<PhoneProvisionOutput>(
+			"POST",
+			"/phone/provision",
+			input,
+			undefined,
+			options,
+		);
 	}
 
-	public release(input: ReleasePhoneInput, options?: RequestOptions): Promise<{ success: true }> {
-		return this.client.request<{ success: true }>("POST", "/phone/release", input, undefined, options);
+	public release(
+		input: ReleasePhoneInput,
+		options?: RequestOptions,
+	): Promise<{ success: true }> {
+		return this.client.request<{ success: true }>(
+			"POST",
+			"/phone/release",
+			input,
+			undefined,
+			options,
+		);
 	}
 
-	public list(params: ListPhonesParams, options?: RequestOptions): Promise<{ items: PhoneIdentityOutput[] }> {
+	public list(
+		params: ListPhonesParams,
+		options?: RequestOptions,
+	): Promise<{ items: PhoneIdentityOutput[] }> {
 		return this.client.request<{ items: PhoneIdentityOutput[] }>(
 			"GET",
 			"/phone/numbers",
@@ -44,7 +65,9 @@ export class PhonesResource {
 		);
 	}
 
-	private toSearchQuery(params?: SearchPhonesParams): Record<string, string | string[]> | undefined {
+	private toSearchQuery(
+		params?: SearchPhonesParams,
+	): Record<string, string | string[]> | undefined {
 		if (!params) return undefined;
 		const query: Record<string, string | string[]> = {};
 		if (params.countryCode) query.countryCode = params.countryCode;
@@ -53,5 +76,4 @@ export class PhonesResource {
 		if (params.limit !== undefined) query.limit = String(params.limit);
 		return Object.keys(query).length > 0 ? query : undefined;
 	}
-
 }
