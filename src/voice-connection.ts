@@ -86,7 +86,7 @@ export class VoiceConnection {
 	/** Create an outbound call. */
 	public createCall(
 		to: string,
-		options?: { tier?: string; greeting?: string; fromNumber?: string },
+		options?: { greeting?: string; fromNumber?: string },
 	): void {
 		this.send("call.create", { to, ...options });
 	}
