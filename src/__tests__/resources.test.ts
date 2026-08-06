@@ -1078,13 +1078,16 @@ describe("resource methods", () => {
 			undefined,
 		);
 
-		await resource.create({ to: "+15551234567", tier: "basic" });
+		// No `tier`: this used to send one and assert it went on the wire, which
+		// made a discarded field look like a working feature. Both transports pin
+		// the pipeline themselves — see call-shape.test.ts.
+		await resource.create({ to: "+15551234567", greeting: "Hi there" });
 		expect(requestMock).toHaveBeenCalledWith(
 			"POST",
 			"/voice/calls",
 			{
 				to: "+15551234567",
-				tier: "basic",
+				greeting: "Hi there",
 			},
 			undefined,
 			undefined,

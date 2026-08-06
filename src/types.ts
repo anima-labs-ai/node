@@ -1877,7 +1877,6 @@ export interface QuarantineOutput {
 
 // ── Voice & Calls ──
 
-export type VoiceTier = "basic" | "premium";
 export type VoiceGender = "male" | "female" | "neutral";
 export type CallDirection = "INBOUND" | "OUTBOUND";
 
@@ -1913,7 +1912,6 @@ export interface Call {
 	agentId: string;
 	phoneIdentityId: string;
 	direction: CallDirection;
-	tier: VoiceTier;
 	state: string;
 	from: string;
 	to: string;
@@ -1936,7 +1934,6 @@ export interface ListCallsParams {
 export interface CreateCallInput {
 	to: string;
 	agentId?: string;
-	tier?: VoiceTier;
 	greeting?: string;
 	fromNumber?: string;
 }
@@ -1946,7 +1943,6 @@ export interface CreateCallOutput {
 	state: string;
 	from: string;
 	to: string;
-	tier: string;
 	direction: "OUTBOUND";
 }
 
