@@ -2051,7 +2051,13 @@ export interface ConnectExtensionResult {
 // never see. This collects a DECISION.
 // ---------------------------------------------------------------------------
 
-export type ProvisionableResource = "VAULT" | "PHONE_NUMBER";
+/**
+ * `GENERIC` appears on RESPONSES and as a list filter, never on create: such a
+ * row records a master-gated procedure an agent actually attempted, and is
+ * written only by the server, which knows the real procedure and arguments.
+ * Creating one is refused by the API.
+ */
+export type ProvisionableResource = "VAULT" | "PHONE_NUMBER" | "GENERIC";
 
 export type ProvisioningRequestStatus =
 	| "PENDING"
