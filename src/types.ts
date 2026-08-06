@@ -2152,10 +2152,16 @@ export interface DecideProvisioningRequestInput {
 	/** Note for the agent, so a retry can address the objection. */
 	note?: string;
 	/**
-	 * Required when approving a GENERIC (permission) request, and rejected on a
-	 * resource request. Approving a permission request without it fails with a
-	 * 422 — there is no default, because "once" and "always" are very different
-	 * commitments and guessing between them is not the SDK's call.
+	 * Required when approving a GENERIC (permission) request. Approving one
+	 * without it fails with a 422 — there is no default, because "once" and
+	 * "always" are very different commitments and guessing between them is not
+	 * the SDK's call.
+	 *
+	 * This type is the body for BOTH approve and decline, mirroring the one
+	 * input the API declares, so it is settable on either. Only approving a
+	 * permission request accepts it: the server answers 422 for a grant on a
+	 * resource request, and 422 for a grant on any decline, rather than
+	 * ignoring it.
 	 */
 	grant?: PermissionGrantKind;
 }
