@@ -2047,7 +2047,13 @@ export interface ConnectExtensionResult {
 // never see. This collects a DECISION.
 // ---------------------------------------------------------------------------
 
-export type ProvisionableResource = "VAULT" | "PHONE_NUMBER";
+/**
+ * `GENERIC` appears on RESPONSES and as a list filter, never on create: such a
+ * row records a master-gated procedure an agent actually attempted, and is
+ * written only by the server, which knows the real procedure and arguments.
+ * Creating one is refused by the API.
+ */
+export type ProvisionableResource = "VAULT" | "PHONE_NUMBER" | "GENERIC";
 
 export type ProvisioningRequestStatus =
 	| "PENDING"
@@ -2072,6 +2078,24 @@ export interface CreateProvisioningRequestInput {
 	options?: ProvisioningOptions;
 }
 
+/** What a GENERIC request is asking for — the operation an agent was refused. */
+export interface PermissionRequestDetail {
+	/** Dotted procedure path, e.g. "agent.delete". */
+	procedurePath: string;
+	/**
+	 * Whether the procedure is read-only. Derived from the contract server-side,
+	 * so a client never re-derives it, and it is what makes a `reads` grant
+	 * applicable.
+	 */
+	readOnly: boolean;
+	/**
+	 * Redacted sketch of the call's arguments. Null — rather than empty — when
+	 * the input was not an object, so "nothing to show" stays distinguishable
+	 * from "shown and empty".
+	 */
+	argumentPreview: Record<string, string> | null;
+}
+
 export interface ProvisioningRequest {
 	requestId: string;
 	agentId: string;
@@ -2086,9 +2110,17 @@ export interface ProvisioningRequest {
 	decidedAt: string | null;
 	/** The owner's note, typically why it was declined. */
 	decidedNote: string | null;
-	/** Vault or phone identity id once APPROVED; null otherwise. */
+	/**
+	 * Vault or phone identity id once APPROVED; for a GENERIC request, the id of
+	 * the permission the approval granted. Null otherwise.
+	 */
 	provisionedId: string | null;
 	createdAt: string;
+	/**
+	 * Present only on a GENERIC request: what the agent was actually refused.
+	 * Null on a resource provisioning request.
+	 */
+	permission: PermissionRequestDetail | null;
 }
 
 export interface CreateProvisioningRequestOutput extends ProvisioningRequest {
@@ -2100,9 +2132,34 @@ export interface CreateProvisioningRequestOutput extends ProvisioningRequest {
 	emailSent: boolean;
 }
 
+/**
+ * How approving a permission request grants it.
+ *
+ * - `once` binds the grant to the exact arguments the owner read, and is spent
+ *   after one successful call.
+ * - `always` allows this procedure indefinitely. It does not expire; revoking
+ *   is a separate action.
+ * - `reads` allows every read-only procedure at once ("Bypass"). The API
+ *   refuses it for a procedure that is not read-only.
+ */
+export type PermissionGrantKind = "once" | "always" | "reads";
+
 export interface DecideProvisioningRequestInput {
 	/** Note for the agent, so a retry can address the objection. */
 	note?: string;
+	/**
+	 * Required when approving a GENERIC (permission) request. Approving one
+	 * without it fails with a 422 — there is no default, because "once" and
+	 * "always" are very different commitments and guessing between them is not
+	 * the SDK's call.
+	 *
+	 * This type is the body for BOTH approve and decline, mirroring the one
+	 * input the API declares, so it is settable on either. Only approving a
+	 * permission request accepts it: the server answers 422 for a grant on a
+	 * resource request, and 422 for a grant on any decline, rather than
+	 * ignoring it.
+	 */
+	grant?: PermissionGrantKind;
 }
 
 export interface ListProvisioningRequestsParams {
