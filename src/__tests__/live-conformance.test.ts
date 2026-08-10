@@ -47,9 +47,20 @@ import {
 import { Anima } from "../index";
 import type { ComplianceFramework, SecuritySeverity } from "../types";
 
-const apiKey = process.env.ANIMA_LIVE_API_KEY;
-const orgId = process.env.ANIMA_LIVE_ORG_ID;
-const baseUrl = process.env.ANIMA_LIVE_BASE_URL;
+// GitHub Actions interpolates an *unset* secret to the empty string rather
+// than leaving the variable out: `FOO: ${{ secrets.FOO }}` with no FOO
+// configured still puts FOO="" in the environment. `??` only falls back on
+// null/undefined, so `apiKey ?? "unset"` below handed `new Anima()` an empty
+// key and threw at import time — before a single `test.skip` could run. That
+// is how an unconfigured repo went red on a workflow whose stated contract is
+// "without them every probe skips, so a fork or an unconfigured repo is green
+// rather than broken". Read empty as absent once, here; every guard below is
+// already a truthiness check and was never the problem.
+const env = (name: string): string | undefined => process.env[name] || undefined;
+
+const apiKey = env("ANIMA_LIVE_API_KEY");
+const orgId = env("ANIMA_LIVE_ORG_ID");
+const baseUrl = env("ANIMA_LIVE_BASE_URL");
 
 const live = apiKey ? test : test.skip;
 const orgScoped = apiKey && orgId ? test : test.skip;
@@ -57,7 +68,7 @@ const orgScoped = apiKey && orgId ? test : test.skip;
 // name an agent ("agentId is required when using a master key"). Without an
 // agent id there is no way to probe them at all, so they skip rather than fail
 // for a reason that has nothing to do with conformance.
-const agentId = process.env.ANIMA_LIVE_AGENT_ID;
+const agentId = env("ANIMA_LIVE_AGENT_ID");
 const agentScoped = apiKey && agentId ? test : test.skip;
 
 const anima = new Anima({
