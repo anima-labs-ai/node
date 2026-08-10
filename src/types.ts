@@ -84,7 +84,6 @@ export interface DateRange {
  */
 export type Tier = "FREE" | "STARTER" | "GROWTH" | "ENTERPRISE";
 export type AgentStatus = "ACTIVE" | "SUSPENDED" | "DELETED";
-export type PhoneProvider = "TELNYX";
 export type TenDlcStatus =
 	| "PENDING"
 	| "REGISTERED"
@@ -142,11 +141,16 @@ export interface PhoneCapabilities {
 export interface PhoneIdentityOutput {
 	id: string;
 	phoneNumber: string;
-	provider: PhoneProvider;
 	providerId: string | null;
 	capabilities: PhoneCapabilities;
 	tenDlcStatus: TenDlcStatus;
 	isPrimary: boolean;
+	/**
+	 * Voice this number answers with, from the voice catalog. `null` falls back
+	 * to the agent's voice, then the system default — so one agent's support
+	 * line and sales line can sound different.
+	 */
+	voiceId: string | null;
 	createdAt: string;
 }
 
@@ -613,7 +617,6 @@ export interface ListPhonesParams {
 export interface PhoneProvisionOutput {
 	id: string;
 	phoneNumber: string;
-	provider: PhoneProvider;
 	providerId: string | null;
 	capabilities: PhoneCapabilities;
 	tenDlcStatus: TenDlcStatus;
