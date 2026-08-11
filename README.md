@@ -50,6 +50,28 @@ const anima = new Anima({
 });
 ```
 
+## Response shapes
+
+This SDK **passes single-key response envelopes through** rather than
+unwrapping them. The API returns collections as `{ items: [...] }` and
+generated values as `{ password: "..." }`, and so do these methods:
+
+```ts
+const { items } = await anima.vault.listCredentials({ agentId });
+const { password } = await anima.vault.generatePassword({ length: 24 });
+```
+
+Paginated resources return a `PageIterator`, which is `PromiseLike`: `await` it
+for the first page (`{ items, pagination }`), or `for await` it to walk every
+page.
+
+> **Porting from the Python SDK?** `anima-labs` makes the opposite choice and
+> unwraps envelopes — `list_credentials()` returns a `list`, and
+> `generate_password()` returns a `str`. Both SDKs are internally consistent;
+> they are not consistent with each other. Code translated line-by-line
+> between them will read the wrong shape, and here that surfaces as
+> `undefined` rather than an error.
+
 ## Resources
 
 ### Organizations
