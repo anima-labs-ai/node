@@ -1,123 +1,130 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 
 import { ValidationError } from "./errors";
-import type { WebhookEvent, WebhookVerificationOptions } from "./types";
+import type {
+	WebhookEvent,
+	WebhookSignatureHeaders,
+	WebhookVerificationOptions,
+} from "./types";
+
+/**
+ * Webhook verification, matching what the platform actually sends.
+ *
+ * Scheme `v1`: HMAC-SHA256, hex-encoded, over `${timestamp}.${rawBody}`, where
+ * `timestamp` is the ISO-8601 string from `X-Anima-Timestamp`. Two headers
+ * travel with every delivery:
+ *
+ *   X-Anima-Signature:  v1=<hex>
+ *   X-Anima-Timestamp:  <ISO-8601>
+ *
+ * The timestamp is inside the signed content rather than merely alongside it,
+ * which is what makes replay rejection possible: a captured delivery fails the
+ * freshness window, and editing the timestamp to get past it invalidates the
+ * MAC.
+ *
+ * This module previously implemented a Stripe-style single header
+ * (`t=<unix>,v1=<hex>`) and MAC'd over a unix-seconds timestamp. Nothing the
+ * platform sends has ever matched that, so both exported functions threw on
+ * every real delivery. The tests did not catch it because they built their own
+ * fixture from the same wrong assumption. See `__tests__/webhooks.test.ts`,
+ * which now derives its fixture from the platform's published scheme instead.
+ */
 
 const DEFAULT_TOLERANCE_SECONDS = 300;
-
-function getTimestampAndSignature(signatureHeader: string): {
-	timestamp: number;
-	signature: string;
-} {
-	const pieces = signatureHeader.split(",").map((part) => part.trim());
-	let timestamp: number | null = null;
-	let signature: string | null = null;
-
-	for (const piece of pieces) {
-		const [key, value] = piece.split("=", 2);
-		if (!key || !value) {
-			continue;
-		}
-
-		if (key === "t") {
-			timestamp = Number(value);
-		}
-		if (key === "v1") {
-			signature = value;
-		}
-	}
-
-	if (!timestamp || !signature) {
-		throw new ValidationError("Invalid webhook signature header format");
-	}
-
-	return { timestamp, signature };
-}
+const SIGNATURE_VERSION = "v1";
 
 function toPayloadString(payload: string | Buffer): string {
 	return typeof payload === "string" ? payload : payload.toString("utf8");
 }
 
-function buildSignedPayload(
-	payload: string | Buffer,
-	timestamp: number,
-): string {
-	return `${timestamp}.${toPayloadString(payload)}`;
+/** Strips the `v1=` prefix. A bare hex digest passes through unchanged. */
+function digestFromHeader(signatureHeader: string): string {
+	const prefix = `${SIGNATURE_VERSION}=`;
+	return signatureHeader.startsWith(prefix)
+		? signatureHeader.slice(prefix.length)
+		: signatureHeader;
 }
 
+/** Hex HMAC-SHA256 over `${timestamp}.${body}`. */
+function computeSignature(
+	secret: string,
+	timestamp: string,
+	body: string,
+): string {
+	return createHmac("sha256", secret)
+		.update(`${timestamp}.${body}`)
+		.digest("hex");
+}
+
+/**
+ * Verifies a delivery's signature and freshness.
+ *
+ * Pass the **raw** request body. Verifying a re-serialised body will fail even
+ * when the delivery is genuine, because re-encoding can reorder keys or change
+ * whitespace and the MAC covers bytes.
+ */
 export function verifyWebhookSignature(
 	payload: string | Buffer,
-	signatureHeader: string,
+	headers: WebhookSignatureHeaders,
 	secret: string,
 	options?: WebhookVerificationOptions,
 ): boolean {
-	const { timestamp, signature } = getTimestampAndSignature(signatureHeader);
+	const signedAt = Date.parse(headers.timestamp);
+	if (Number.isNaN(signedAt)) {
+		return false;
+	}
+
 	const now = options?.now ?? Date.now();
 	const toleranceSeconds =
 		options?.toleranceSeconds ?? DEFAULT_TOLERANCE_SECONDS;
-
-	const ageSeconds = Math.floor(Math.abs(now - timestamp * 1000) / 1000);
-	if (ageSeconds > toleranceSeconds) {
+	if (Math.abs(now - signedAt) > toleranceSeconds * 1000) {
 		return false;
 	}
 
-	const expectedSignature = createHmac("sha256", secret)
-		.update(buildSignedPayload(payload, timestamp))
-		.digest("hex");
+	const expected = computeSignature(
+		secret,
+		headers.timestamp,
+		toPayloadString(payload),
+	);
+	const expectedBuffer = Buffer.from(expected, "hex");
+	const providedBuffer = Buffer.from(digestFromHeader(headers.signature), "hex");
 
-	const expectedBuffer = Buffer.from(expectedSignature, "hex");
-	const actualBuffer = Buffer.from(signature, "hex");
-
-	if (expectedBuffer.length !== actualBuffer.length) {
+	if (expectedBuffer.length !== providedBuffer.length) {
 		return false;
 	}
 
-	return timingSafeEqual(expectedBuffer, actualBuffer);
+	return timingSafeEqual(expectedBuffer, providedBuffer);
 }
 
+/**
+ * Verifies a delivery and returns the parsed payload.
+ *
+ * The payload is flat, so the returned object *is* the delivery: `event` and
+ * `occurredAt` alongside that event's own fields. Throws {@link ValidationError}
+ * if the signature does not verify or the body is not a webhook payload.
+ */
 export function constructWebhookEvent(
 	payload: string | Buffer,
-	signatureHeader: string,
+	headers: WebhookSignatureHeaders,
 	secret: string,
 	options?: WebhookVerificationOptions,
 ): WebhookEvent {
-	const isValid = verifyWebhookSignature(
-		payload,
-		signatureHeader,
-		secret,
-		options,
-	);
-	if (!isValid) {
+	if (!verifyWebhookSignature(payload, headers, secret, options)) {
 		throw new ValidationError("Invalid webhook signature");
 	}
 
-	const payloadText = toPayloadString(payload);
-	const parsed = JSON.parse(payloadText) as unknown;
+	const parsed = JSON.parse(toPayloadString(payload)) as unknown;
 	if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
 		throw new ValidationError("Invalid webhook payload format");
 	}
 
 	const obj = parsed as Record<string, unknown>;
-	if (typeof obj.type !== "string") {
-		throw new ValidationError("Webhook payload missing event type");
+	if (typeof obj.event !== "string") {
+		throw new ValidationError("Webhook payload missing event name");
+	}
+	if (typeof obj.occurredAt !== "string") {
+		throw new ValidationError("Webhook payload missing occurredAt");
 	}
 
-	const dataRaw = obj.data;
-	if (!dataRaw || typeof dataRaw !== "object" || Array.isArray(dataRaw)) {
-		throw new ValidationError("Webhook payload missing data object");
-	}
-
-	const event: WebhookEvent = {
-		type: obj.type as WebhookEvent["type"],
-		data: dataRaw as Record<string, unknown>,
-	};
-
-	if (typeof obj.id === "string") {
-		event.id = obj.id;
-	}
-	if (typeof obj.createdAt === "string") {
-		event.createdAt = obj.createdAt;
-	}
-
-	return event;
+	return obj as WebhookEvent;
 }

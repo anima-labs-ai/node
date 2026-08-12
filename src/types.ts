@@ -1098,16 +1098,36 @@ export interface ListAddressesParams extends PaginationInput {
 	type?: AddressType;
 }
 
+/**
+ * Every event the platform emits, mirroring the table published at
+ * docs.useanima.sh/webhooks. `GET /webhooks/event-types` returns the same list
+ * from the live API.
+ *
+ * Subscribing to a name that is not on this list is accepted by the API and
+ * then never fires, so the union is the only thing standing between a typo and
+ * an endpoint that silently receives nothing.
+ */
 export type WebhookEventType =
 	| "message.received"
+	/** Inbound mail detected as automated. Fires *instead of* `message.received`. */
+	| "message.received.auto"
 	| "message.sent"
 	| "message.failed"
 	| "message.bounced"
+	| "message.loop_detected"
 	| "agent.created"
 	| "agent.updated"
 	| "agent.deleted"
 	| "phone.provisioned"
-	| "phone.released";
+	| "phone.released"
+	| "call.started"
+	| "call.ended"
+	| "call.summary.ready"
+	| "call.score.ready"
+	| "call.security.alert"
+	| "call.security.scan.ready"
+	| "a2a.task.received"
+	| "vault.credential.refresh_failed";
 
 /**
  * Authentication the platform presents to your endpoint on each delivery, in
@@ -1237,15 +1257,43 @@ export interface ApiErrorEnvelope {
 	message?: string;
 }
 
+/**
+ * A delivered webhook, exactly as it arrives on the wire.
+ *
+ * The payload is **flat**. There is no `data` envelope: `event` and
+ * `occurredAt` sit alongside the event's own fields, so a `message.received`
+ * delivery carries `messageId`, `agentId`, `channel`, `direction`,
+ * `fromAddress`, `toAddress`, `threadId` and — for email — `subject` and
+ * `spam`, all at the top level.
+ *
+ * The message **body is not included**; fetch `GET /v1/messages/{id}` when you
+ * need content.
+ */
 export interface WebhookEvent {
-	id?: string;
-	type: WebhookEventType;
-	createdAt?: string;
-	data: Record<string, unknown>;
+	/** The event name, e.g. `"message.received"`. */
+	event: WebhookEventType;
+	/** ISO-8601 time the event occurred. */
+	occurredAt: string;
+	/** Event-specific fields, flat alongside `event` and `occurredAt`. */
+	[key: string]: unknown;
+}
+
+/**
+ * The two signature headers that travel with every delivery.
+ *
+ * Both are required to verify: the timestamp is bound into the signed content,
+ * so a receiver that only reads the signature cannot recompute the MAC.
+ */
+export interface WebhookSignatureHeaders {
+	/** `X-Anima-Signature` — `v1=<hex>`. A bare hex digest is also accepted. */
+	signature: string;
+	/** `X-Anima-Timestamp` — ISO-8601, and part of the signed content. */
+	timestamp: string;
 }
 
 export interface WebhookVerificationOptions {
 	toleranceSeconds?: number;
+	/** Milliseconds since the epoch. Defaults to `Date.now()`. */
 	now?: number;
 }
 
