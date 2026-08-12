@@ -563,7 +563,9 @@ app.post(
 );
 ```
 
-Signature format: `t=<unix_timestamp>,v1=<hmac_sha256_hex>`
+Signature format: `X-Anima-Signature: v1=<hmac_sha256_hex>`, computed over
+`{X-Anima-Timestamp}.{raw body}`. The timestamp is a separate header and is
+ISO-8601, not Unix seconds.
 
 ## Error Handling
 

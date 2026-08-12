@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, mock, test } from "bun:test";
+import { createHmac } from "node:crypto";
 
 import { AnimaClient } from "../client";
 import { webhookMiddleware } from "../middleware";
@@ -101,11 +102,42 @@ describe("webhookMiddleware", () => {
 		expect(next).not.toHaveBeenCalled();
 	});
 
-	test("rejects invalid signature", () => {
-		const middleware = webhookMiddleware("whsec_test");
+	// The previous version of this test sent `anima-signature: t=1234,v1=invalid`
+	// — the old header name, and no timestamp header at all. The middleware turns
+	// those away on the missing-header branch before verification ever runs, so
+	// the test passed without exercising a single byte of HMAC comparison. Stub
+	// verifyWebhookSignature to return true unconditionally and it stayed green.
+	//
+	// Both cases below therefore send well-formed headers and a fresh timestamp,
+	// so the request reaches verification. The pair is what makes them meaningful:
+	// the reject case alone still passes if verification always fails, and the
+	// accept case alone still passes if it always succeeds.
+	const SECRET = "whsec_test";
+	// The flat shape the platform actually sends. `{ type, data }` — what this
+	// file used before — verifies its signature fine and is then rejected for a
+	// missing `event`, which is the payload half of the bug this PR fixes.
+	const rawBody = JSON.stringify({
+		event: "message.received",
+		occurredAt: "2026-08-12T10:00:00.000Z",
+	});
+
+	function sign(timestamp: string, body: string): string {
+		// Derived from the platform's documented scheme — HMAC-SHA256, hex, over
+		// `{timestamp}.{rawBody}` — rather than by calling the SDK's own signer,
+		// so this fails if the SDK drifts from what the platform sends.
+		return `v1=${createHmac("sha256", SECRET).update(`${timestamp}.${body}`).digest("hex")}`;
+	}
+
+	test("rejects a present but incorrect signature", () => {
+		const middleware = webhookMiddleware(SECRET);
 		const req = {
-			headers: { "anima-signature": "t=1234,v1=invalid" },
-			body: JSON.stringify({ type: "test", data: {} }),
+			headers: {
+				// Correct shape and length, wrong bytes — so this exercises the MAC
+				// comparison rather than an early length or format guard.
+				"x-anima-signature": `v1=${"0".repeat(64)}`,
+				"x-anima-timestamp": new Date().toISOString(),
+			},
+			body: rawBody,
 		} as any;
 		const res = {
 			status: mock(() => res),
@@ -117,5 +149,27 @@ describe("webhookMiddleware", () => {
 
 		expect(res.status).toHaveBeenCalledWith(400);
 		expect(next).not.toHaveBeenCalled();
+	});
+
+	test("accepts a correctly signed delivery", () => {
+		const middleware = webhookMiddleware(SECRET);
+		const timestamp = new Date().toISOString();
+		const req = {
+			headers: {
+				"x-anima-signature": sign(timestamp, rawBody),
+				"x-anima-timestamp": timestamp,
+			},
+			body: rawBody,
+		} as any;
+		const res = {
+			status: mock(() => res),
+			json: mock(() => {}),
+		} as any;
+		const next = mock();
+
+		middleware(req, res, next);
+
+		expect(next).toHaveBeenCalled();
+		expect(res.status).not.toHaveBeenCalled();
 	});
 });
