@@ -5,15 +5,24 @@ import { constructWebhookEvent } from "./webhooks";
  * Express-compatible middleware that verifies webhook signatures and
  * attaches the parsed event to `req.webhookEvent`.
  *
- * Usage:
- * ```typescript
- * import { webhookMiddleware } from "anima";
+ * Mount it with a **raw body parser**. The signature covers the exact bytes the
+ * platform sent, so a body that has been parsed and re-serialised will not
+ * verify even when the delivery is genuine — `JSON.stringify` can reorder keys
+ * and drop whitespace.
  *
- * app.post("/webhooks", webhookMiddleware("whsec_..."), (req, res) => {
- *   const event = req.webhookEvent;
- *   // handle event
- *   res.sendStatus(200);
- * });
+ * ```typescript
+ * import express from "express";
+ * import { webhookMiddleware } from "@anima-labs/sdk";
+ *
+ * app.post(
+ *   "/webhooks",
+ *   express.raw({ type: "application/json" }),
+ *   webhookMiddleware(process.env.ANIMA_WEBHOOK_SECRET!),
+ *   (req, res) => {
+ *     const event = req.webhookEvent;   // flat: event, occurredAt, ...fields
+ *     res.sendStatus(200);
+ *   },
+ * );
  * ```
  */
 export function webhookMiddleware(
@@ -24,26 +33,46 @@ export function webhookMiddleware(
 	next: (err?: unknown) => void,
 ) => void {
 	return (req, res, next) => {
-		const signature =
-			req.headers["anima-signature"] ?? req.headers["x-anima-signature"];
-		if (!signature || typeof signature !== "string") {
-			res.status(400).json({ error: "Missing webhook signature header" });
+		const signature = headerValue(req, "x-anima-signature");
+		const timestamp = headerValue(req, "x-anima-timestamp");
+
+		if (!signature || !timestamp) {
+			res
+				.status(400)
+				.json({ error: "Missing webhook signature or timestamp header" });
 			return;
 		}
 
-		// Get raw body - Express needs express.raw() or express.json() with verify
-		const body =
-			typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+		// Only a raw body can be verified; see the note above.
+		if (typeof req.body !== "string" && !Buffer.isBuffer(req.body)) {
+			res.status(400).json({
+				error:
+					"Webhook body must be raw. Mount express.raw({ type: 'application/json' }) before this middleware.",
+			});
+			return;
+		}
 
 		try {
-			const event = constructWebhookEvent(body, signature, secret);
+			const event = constructWebhookEvent(
+				req.body,
+				{ signature, timestamp },
+				secret,
+			);
 			(req as WebhookRequest & { webhookEvent: WebhookEvent }).webhookEvent =
 				event;
 			next();
-		} catch (err) {
+		} catch {
 			res.status(400).json({ error: "Invalid webhook signature" });
 		}
 	};
+}
+
+/** First value for a header, tolerating the string[] form some frameworks use. */
+function headerValue(req: WebhookRequest, name: string): string | undefined {
+	const raw = req.headers[name];
+	if (typeof raw === "string") return raw;
+	if (Array.isArray(raw)) return raw[0];
+	return undefined;
 }
 
 /** Minimal request interface compatible with Express/Koa/Fastify */

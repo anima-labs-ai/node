@@ -500,36 +500,72 @@ const session = await anima.extension.connect();
 
 ## Webhook Verification
 
-Verify incoming webhook signatures using HMAC-SHA256:
+Every delivery carries **two** headers, and you need both. The signature is an
+HMAC-SHA256 over `` `${timestamp}.${rawBody}` ``, so a receiver that reads only
+`X-Anima-Signature` cannot recompute it:
+
+| Header | Contents |
+| --- | --- |
+| `X-Anima-Signature` | `v1=<hex>` |
+| `X-Anima-Timestamp` | ISO-8601, and part of the signed content |
+| `X-Anima-Event` | The event name |
+| `X-Anima-Delivery-Id` | Stable across retries — use it as your idempotency key |
 
 ```ts
+import express from "express";
 import { Anima } from "@anima-labs/sdk";
 
-// In your webhook handler
-app.post("/webhooks/anima", (req, res) => {
-  const payload = req.body; // raw string body
-  const signature = req.headers["x-anima-signature"];
-  const secret = "whsec_your_webhook_secret";
+// express.raw is required: the signature covers the exact bytes we sent, and
+// re-serialising a parsed body can reorder keys or drop whitespace.
+app.post(
+  "/webhooks/anima",
+  express.raw({ type: "application/json" }),
+  (req, res) => {
+    const headers = {
+      signature: req.headers["x-anima-signature"] as string,
+      timestamp: req.headers["x-anima-timestamp"] as string,
+    };
+    const secret = process.env.ANIMA_WEBHOOK_SECRET!;
 
-  // Option 1: Verify and parse in one step
-  try {
-    const event = Anima.webhooks.constructEvent(payload, signature, secret);
-    console.log(event.type, event.data);
-  } catch (err) {
-    return res.status(400).send("Invalid signature");
-  }
+    // Verify and parse in one step
+    try {
+      const event = Anima.webhooks.constructEvent(req.body, headers, secret);
+      // The payload is flat — no `data` envelope to unwrap.
+      console.log(event.event, event.occurredAt, event.messageId);
+    } catch {
+      return res.status(400).send("Invalid signature");
+    }
 
-  // Option 2: Verify only
-  const isValid = Anima.webhooks.verify(payload, signature, secret);
-  if (!isValid) {
-    return res.status(400).send("Invalid signature");
-  }
+    // …or verify only
+    const isValid = Anima.webhooks.verify(req.body, headers, secret);
+    if (!isValid) {
+      return res.status(400).send("Invalid signature");
+    }
 
-  res.status(200).send("OK");
-});
+    res.status(200).send("OK");
+  },
+);
 ```
 
-Signature format: `t=<unix_timestamp>,v1=<hmac_sha256_hex>`
+Or mount the middleware, which does both and attaches `req.webhookEvent`:
+
+```ts
+import { webhookMiddleware } from "@anima-labs/sdk";
+
+app.post(
+  "/webhooks/anima",
+  express.raw({ type: "application/json" }),
+  webhookMiddleware(process.env.ANIMA_WEBHOOK_SECRET!),
+  (req, res) => {
+    console.log(req.webhookEvent.event);
+    res.sendStatus(200);
+  },
+);
+```
+
+Signature format: `X-Anima-Signature: v1=<hmac_sha256_hex>`, computed over
+`{X-Anima-Timestamp}.{raw body}`. The timestamp is a separate header and is
+ISO-8601, not Unix seconds.
 
 ## Error Handling
 
