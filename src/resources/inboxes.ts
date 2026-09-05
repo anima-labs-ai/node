@@ -2,6 +2,7 @@ import type { RequestClient } from "../client";
 import { PageIterator } from "../pagination";
 import type {
 	CreateInboxInput,
+	InboxListItem,
 	InboxListParams,
 	InboxOutput,
 	RequestOptions,
@@ -39,8 +40,12 @@ export class InboxesResource {
 		);
 	}
 
-	public list(params?: InboxListParams): PageIterator<InboxOutput> {
-		return new PageIterator<InboxOutput>((cursor) => {
+	/**
+	 * List inboxes. Rows carry `agentName` and `unreadCount`, which the
+	 * single-inbox `get()` does not return.
+	 */
+	public list(params?: InboxListParams): PageIterator<InboxListItem> {
+		return new PageIterator<InboxListItem>((cursor) => {
 			const merged = cursor ? { ...params, cursor } : params;
 			return this.client.request(
 				"GET",

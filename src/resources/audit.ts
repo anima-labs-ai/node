@@ -63,6 +63,7 @@ export class AuditResource {
 		if (params.resourceType) query.resourceType = params.resourceType;
 		if (params.resourceId) query.resourceId = params.resourceId;
 		if (params.result) query.result = params.result;
+		if (params.query) query.query = params.query;
 		if (params.from) query.from = params.from;
 		if (params.to) query.to = params.to;
 		if (params.cursor) query.cursor = params.cursor;
