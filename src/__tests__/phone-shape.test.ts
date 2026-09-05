@@ -25,7 +25,17 @@
 
 import { describe, expect, test } from "bun:test";
 
-import type { PhoneIdentityOutput, PhoneProvisionOutput } from "../types";
+import type {
+	PhoneIdentityListItem,
+	TenDlcStatus,
+	PhoneIdentityOutput,
+	PhoneProvisionOutput,
+	SmsSuppression,
+	SmsThread,
+	SmsThreadDetail,
+	SmsThreadListPage,
+	SmsThreadStat,
+} from "../types";
 
 /**
  * The fields each schema actually carries. Spelled out rather than derived from
@@ -53,6 +63,83 @@ const LIVE_PHONE_PROVISION_FIELDS = [
 	"createdAt",
 ] as const;
 
+/**
+ * The SMS conversation surface, added when the phone contracts gained
+ * `listIdentities` and `smsThreadStats`. Same rule as the two lists above:
+ * transcribed from packages/contracts/src/schemas/phone.ts, never derived from
+ * the SDK types they check.
+ */
+const LIVE_PHONE_IDENTITY_LIST_FIELDS = [
+	...LIVE_PHONE_IDENTITY_FIELDS,
+	"agentId",
+	"agentName",
+	"agentSlug",
+] as const;
+
+const LIVE_SMS_THREAD_FIELDS = [
+	"threadId",
+	"agentId",
+	"participantAddress",
+	"agentAddress",
+	"lastMessageAt",
+	"lastMessageSnippet",
+	"lastMessageDirection",
+	"messageCount",
+	"unreadCount",
+] as const;
+
+// `{items, total, hasMore}` — offset-paged, so neither the `{items, pagination}`
+// nor the `{items, nextCursor}` envelope. Asserted because feeding this shape
+// to PageIterator yields `hasMore: false` on page one and silently truncates.
+const LIVE_SMS_THREAD_PAGE_FIELDS = ["items", "total", "hasMore"] as const;
+
+const LIVE_SMS_THREAD_DETAIL_FIELDS = [
+	"threadId",
+	"agentId",
+	"participantAddress",
+	"agentAddress",
+	"messages",
+	"messageCount",
+	"hasMore",
+] as const;
+
+const LIVE_SMS_THREAD_STAT_FIELDS = [
+	"agentId",
+	"conversations",
+	"unread",
+	"lastMessageAt",
+] as const;
+
+const LIVE_SMS_SUPPRESSION_FIELDS = [
+	"id",
+	"phoneNumber",
+	"agentId",
+	"reason",
+	"source",
+	"createdAt",
+] as const;
+
+/**
+ * Every 10DLC status the contract declares.
+ *
+ * `UNREGISTERED` has been in the contract since anima #314 (2026-07-17) and is
+ * described there as "the state every newly provisioned US long code starts
+ * in", but this union omitted it — so a `switch` over the status had no branch
+ * for the one value a fresh US number actually carries, and narrowing told the
+ * caller the case was impossible. The python SDK, which validates, raised
+ * outright on the same payload.
+ *
+ * The drift canary cannot catch this class of gap: it diffs the pinned commit
+ * against HEAD, and this landed before the pin.
+ */
+const LIVE_TEN_DLC_STATUSES = [
+	"PENDING",
+	"REGISTERED",
+	"REJECTED",
+	"NOT_REQUIRED",
+	"UNREGISTERED",
+] as const;
+
 type Equals<A, B> = [A] extends [B] ? ([B] extends [A] ? true : false) : false;
 
 // Exact match, both directions. A field the API returns but the SDK omits is
@@ -68,6 +155,41 @@ const _phoneProvisionMatchesContract: Equals<
 	(typeof LIVE_PHONE_PROVISION_FIELDS)[number]
 > = true;
 
+const _phoneIdentityListMatchesContract: Equals<
+	keyof PhoneIdentityListItem,
+	(typeof LIVE_PHONE_IDENTITY_LIST_FIELDS)[number]
+> = true;
+
+const _smsThreadMatchesContract: Equals<
+	keyof SmsThread,
+	(typeof LIVE_SMS_THREAD_FIELDS)[number]
+> = true;
+
+const _smsThreadPageMatchesContract: Equals<
+	keyof SmsThreadListPage,
+	(typeof LIVE_SMS_THREAD_PAGE_FIELDS)[number]
+> = true;
+
+const _smsThreadDetailMatchesContract: Equals<
+	keyof SmsThreadDetail,
+	(typeof LIVE_SMS_THREAD_DETAIL_FIELDS)[number]
+> = true;
+
+const _smsThreadStatMatchesContract: Equals<
+	keyof SmsThreadStat,
+	(typeof LIVE_SMS_THREAD_STAT_FIELDS)[number]
+> = true;
+
+const _smsSuppressionMatchesContract: Equals<
+	keyof SmsSuppression,
+	(typeof LIVE_SMS_SUPPRESSION_FIELDS)[number]
+> = true;
+
+const _tenDlcStatusMatchesContract: Equals<
+	TenDlcStatus,
+	(typeof LIVE_TEN_DLC_STATUSES)[number]
+> = true;
+
 describe("phone shapes match the API contract", () => {
 	test("the type-level guards are asserted", () => {
 		// The real assertions are the two `= true` bindings above, checked by
@@ -76,6 +198,13 @@ describe("phone shapes match the API contract", () => {
 		expect([
 			_phoneIdentityMatchesContract,
 			_phoneProvisionMatchesContract,
-		]).toEqual([true, true]);
+			_phoneIdentityListMatchesContract,
+			_smsThreadMatchesContract,
+			_smsThreadPageMatchesContract,
+			_smsThreadDetailMatchesContract,
+			_smsThreadStatMatchesContract,
+			_smsSuppressionMatchesContract,
+			_tenDlcStatusMatchesContract,
+		]).toEqual([true, true, true, true, true, true, true, true, true]);
 	});
 });

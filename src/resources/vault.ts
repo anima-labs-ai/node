@@ -75,6 +75,7 @@ export class VaultResource {
 		const query: Record<string, string> = {};
 		if (!params) return query;
 		if (params.status) query.status = params.status;
+		if (params.query) query.query = params.query;
 		if (params.limit !== undefined) query.limit = String(params.limit);
 		if (params.cursor) query.cursor = params.cursor;
 		return query;

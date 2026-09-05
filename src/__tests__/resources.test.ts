@@ -748,6 +748,81 @@ describe("resource methods", () => {
 		);
 	});
 
+	test("phones org-wide list and SMS conversation surface", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new PhonesResource(client);
+
+		await resource.listIdentities({ query: "555-123", limit: 10 });
+		await resource.getSmsThread("thread_1", { limit: 25 });
+		await resource.smsThreadStats({ agentId: "agent_1" });
+		await resource.listSmsSuppressions({ phoneNumber: "+15550001" });
+		await resource.unsuppressSms({ phoneNumber: "+15550001" });
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/phone/identities",
+			undefined,
+			{ query: "555-123", limit: "10" },
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/phone/sms/threads/thread_1",
+			undefined,
+			{ limit: "25" },
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/phone/sms/stats",
+			undefined,
+			{ agentId: "agent_1" },
+			undefined,
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/phone/sms-suppressions",
+			undefined,
+			{ phoneNumber: "+15550001" },
+		);
+		expect(requestMock).toHaveBeenCalledWith(
+			"POST",
+			"/phone/sms-unsuppress",
+			{ phoneNumber: "+15550001" },
+			undefined,
+			undefined,
+		);
+	});
+
+	// `unread: false` and `offset: 0` are both falsy, and the sibling query
+	// builders in this file all test truthiness — so the obvious way to write
+	// this one drops them.
+	//
+	// Today that is invisible: the handler gates on `params.unread ? ... :
+	// undefined` and `offset` is zod `.default(0)`, so absent and falsy behave
+	// identically at the API. This pins the encoding rather than a live bug —
+	// what the caller asked for reaches the wire, so the request log matches
+	// the call, and the day either side stops treating the two alike this
+	// fails here instead of in someone's thread list.
+	test("phones listSmsThreads forwards falsy unread and offset", async () => {
+		const { client, requestMock } = createMockClient();
+		const resource = new PhonesResource(client);
+
+		await resource.listSmsThreads({
+			agentId: "agent_1",
+			unread: false,
+			offset: 0,
+			limit: 20,
+		});
+
+		expect(requestMock).toHaveBeenCalledWith(
+			"GET",
+			"/phone/sms/threads",
+			undefined,
+			{ agentId: "agent_1", limit: "20", offset: "0", unread: "false" },
+			undefined,
+		);
+	});
+
 	test("webhooks resource uses expected methods/paths", async () => {
 		const { client, requestMock } = createMockClient();
 		const resource = new WebhooksResource(client);

@@ -88,7 +88,18 @@ export type TenDlcStatus =
 	| "PENDING"
 	| "REGISTERED"
 	| "REJECTED"
-	| "NOT_REQUIRED";
+	| "NOT_REQUIRED"
+	/**
+	 * The state every newly provisioned US long code starts in: US-destined
+	 * SMS is refused with `TEN_DLC_NOT_REGISTERED` until a campaign is
+	 * approved, though the number can still text non-US destinations.
+	 *
+	 * Missing from this union since the contract added it (anima #314,
+	 * 2026-07-17), so a `switch` over the status had no branch for the one
+	 * value a fresh US number actually carries. The drift canary cannot catch
+	 * this class of gap: it landed before the pin the canary diffs from.
+	 */
+	| "UNREGISTERED";
 
 export interface CreateOrganizationInput {
 	name: string;
@@ -496,8 +507,29 @@ export interface InboxOutput {
 	domain: string;
 	localPart: string;
 	displayName: string | null;
-	agentId: string | null;
+	/**
+	 * Agent this inbox belongs to. Never null: `Inbox.agentId` is NOT NULL in
+	 * the schema, and unowned mailboxes were removed under "one agent, one
+	 * inbox". This was declared nullable until anima ad326da5, which invited
+	 * callers to handle a state the database forbids.
+	 */
+	agentId: string;
 	createdAt: string;
+}
+
+/**
+ * What `inboxes.list()` returns — `InboxOutput` plus the two fields the list
+ * endpoint adds and the single-inbox `get()` does not.
+ */
+export interface InboxListItem extends InboxOutput {
+	/**
+	 * Name of the owning agent. Carried on the row because `agentId` alone is a
+	 * cuid; without it every caller wanting a name refetched the agent list and
+	 * joined by hand.
+	 */
+	agentName: string;
+	/** Unread messages in this inbox. */
+	unreadCount: number;
 }
 
 export interface InboxListParams extends PaginationInput {
@@ -624,6 +656,153 @@ export interface PhoneProvisionOutput {
 	createdAt: string;
 }
 
+/**
+ * A number as the org-wide list returns it: the number itself plus the agent
+ * that owns it. `phones.list()` is scoped to one agent and needs no such
+ * joining; this list spans agents, so the row has to say whose each number is.
+ */
+export interface PhoneIdentityListItem extends PhoneIdentityOutput {
+	agentId: string;
+	agentName: string;
+	agentSlug: string;
+}
+
+export interface ListPhoneIdentitiesParams extends PaginationInput {
+	/**
+	 * Free-text search. Digits match the number itself with punctuation and
+	 * spacing ignored, so "(555) 123" and "555-123" both find +15551234567; the
+	 * raw term also matches the owning agent's name or slug.
+	 */
+	query?: string;
+	/**
+	 * Restrict to one agent's numbers. Omit to list every number in the org. An
+	 * agent key is confined to its own numbers whether or not this is set.
+	 */
+	agentId?: string;
+}
+
+// --- SMS conversations -----------------------------------------------------
+//
+// An SMS conversation is the pair (agent, counterparty E.164) — SMS has no
+// In-Reply-To chain to thread on, so the pair IS the thread. `threadId` is the
+// id of the conversation's first message, so `messages.list({ threadId })`
+// returns the whole conversation.
+
+export type SmsMessageDirection = "INBOUND" | "OUTBOUND";
+
+export interface SmsThread {
+	/** Conversation identifier — the id of its first message. */
+	threadId: string;
+	agentId: string;
+	/** The counterparty's phone number (E.164). */
+	participantAddress: string;
+	/** The agent's own number used in this conversation. */
+	agentAddress: string;
+	lastMessageAt: string;
+	/** First 140 characters of the most recent message's body. */
+	lastMessageSnippet: string;
+	lastMessageDirection: SmsMessageDirection;
+	messageCount: number;
+	/** Messages still carrying the `unread` label. Inbound texts start unread. */
+	unreadCount: number;
+}
+
+/**
+ * Offset-paged, not cursor-paged — the one list on this SDK that is. Pass
+ * `offset` yourself; see `PhonesResource.listSmsThreads`.
+ */
+export interface SmsThreadListParams {
+	/**
+	 * Filter to one agent. Optional for master keys (omit for the whole org);
+	 * ignored for agent keys, which always see only their own.
+	 */
+	agentId?: string;
+	/** 1–100, default 20. */
+	limit?: number;
+	/** Conversations to skip. Default 0. */
+	offset?: number;
+	/** When true, return only conversations with at least one unread message. */
+	unread?: boolean;
+}
+
+export interface SmsThreadListPage {
+	items: SmsThread[];
+	/** Total conversations matching the query — not just this page. */
+	total: number;
+	hasMore: boolean;
+}
+
+export interface SmsThreadGetParams {
+	/**
+	 * 1–100, default 50. When the conversation is longer, the MOST RECENT
+	 * `limit` messages are returned, still oldest-first among themselves; reach
+	 * deeper history via `messages.list({ threadId })`.
+	 */
+	limit?: number;
+}
+
+export interface SmsThreadDetail {
+	threadId: string;
+	agentId: string;
+	participantAddress: string;
+	agentAddress: string;
+	/** Chronological (oldest-first) reading order. */
+	messages: MessageOutput[];
+	messageCount: number;
+	/** True when the conversation holds more messages than this response returned. */
+	hasMore: boolean;
+}
+
+export interface SmsThreadStatsParams {
+	/**
+	 * Restrict to one agent. Omit for every agent in the org; ignored for agent
+	 * keys, which always see only their own.
+	 */
+	agentId?: string;
+}
+
+export interface SmsThreadStat {
+	agentId: string;
+	conversations: number;
+	/** Unread inbound messages across those conversations. */
+	unread: number;
+	lastMessageAt: string | null;
+}
+
+// --- SMS suppressions ------------------------------------------------------
+
+/** Recipient texted STOP, or an admin added the entry by hand. */
+export type SmsSuppressionReason = "STOP_KEYWORD" | "MANUAL";
+
+export interface SmsSuppression {
+	id: string;
+	/** Suppressed recipient number (E.164). */
+	phoneNumber: string;
+	/** Agent the suppression is scoped to, or null when workspace-wide. */
+	agentId: string | null;
+	reason: SmsSuppressionReason;
+	/** Free-form origin marker, e.g. "inbound-stop-keyword". */
+	source: string | null;
+	createdAt: string;
+}
+
+export interface SmsSuppressionListParams extends PaginationInput {
+	/** Filter to one recipient (E.164 or close; normalized server-side). */
+	phoneNumber?: string;
+}
+
+export interface SmsUnsuppressInput {
+	/** Recipient to unsuppress (E.164 or close; normalized server-side). */
+	phoneNumber: string;
+}
+
+export interface SmsUnsuppressOutput {
+	/** The normalized number that was unsuppressed. */
+	phoneNumber: string;
+	/** How many suppression entries were removed. */
+	removed: number;
+}
+
 export type CredentialType =
 	| "login"
 	| "secure_note"
@@ -666,6 +845,12 @@ export interface VaultIdentityOutput {
 
 export interface ListVaultIdentitiesParams {
 	status?: "ACTIVE" | "LOCKED" | "ERROR";
+	/**
+	 * Free-text search over the owning agent's name and slug. A vault identity
+	 * has no name of its own, so this is the only text search that means
+	 * anything here.
+	 */
+	query?: string;
 	limit?: number;
 	cursor?: string;
 }
@@ -1554,6 +1739,11 @@ export interface AuditLogListParams extends PaginationInput {
 	resourceType?: string;
 	resourceId?: string;
 	result?: AuditResult;
+	/**
+	 * Free-text search over action, actor id, resource type and resource id.
+	 * Narrows *with* the exact-match filters above rather than replacing them.
+	 */
+	query?: string;
 	from?: string;
 	to?: string;
 }
@@ -1565,6 +1755,8 @@ export interface AuditLogExportParams {
 	actorId?: string;
 	action?: string;
 	resourceType?: string;
+	/** Same free-text search as `AuditLogListParams.query`. */
+	query?: string;
 }
 
 export interface AuditLogExportOutput {
